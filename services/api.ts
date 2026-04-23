@@ -1,6 +1,6 @@
 import axios from "axios";
 import useAuthStore from "../store/auth";
-import { ASTEntry, Prediction, Report, Sample } from "../types/index";
+import { ASTEntry, Report, Sample } from "../types/index";
 
 const api = axios.create({
   baseURL: process.env.EXPO_PUBLIC_AMR_API_BASE_URL ?? "http://localhost:3000",
@@ -28,6 +28,10 @@ api.interceptors.response.use(
 const delay = () => new Promise((resolve) => setTimeout(resolve, 300));
 
 export default api;
+
+/* ─────────────────────────────────────────────
+   SAMPLES (unchanged)
+───────────────────────────────────────────── */
 
 export async function getSamples(): Promise<Sample[]> {
   await delay();
@@ -103,6 +107,10 @@ export async function saveAST(
 ): Promise<void> {
   await delay();
 }
+
+/* ─────────────────────────────────────────────
+   REPORTS (unchanged)
+───────────────────────────────────────────── */
 
 export async function getReports(): Promise<Report[]> {
   await delay();
@@ -217,54 +225,26 @@ export async function getReport(reportId: string): Promise<Report> {
   const reports = await getReports();
   return reports[0];
 }
+export async function getPredictions(years: number = 5): Promise<any[]> {
+  try {
+    const BASE_URL =
+      process.env.EXPO_PUBLIC_AMR_API_BASE_URL ?? "http://10.246.63.121:8000";
 
-export async function getPredictions(): Promise<Prediction[]> {
-  await delay();
-  return [
-    {
-      antibiotic: "Ceftriaxone",
-      abbreviation: "CRO",
-      currentRate: 58.8,
-      predictedRate: 72,
-      delta: 13.2,
-      historicalData: [
-        { year: "2021", rate: 45 },
-        { year: "2022", rate: 48 },
-        { year: "2023", rate: 52 },
-        { year: "2024", rate: 55 },
-        { year: "2025", rate: 57 },
-        { year: "2026", rate: 58.8 },
-      ],
-    },
-    {
-      antibiotic: "Erythromycin",
-      abbreviation: "ERY",
-      currentRate: 64.0,
-      predictedRate: 68,
-      delta: 4.0,
-      historicalData: [
-        { year: "2021", rate: 50 },
-        { year: "2022", rate: 55 },
-        { year: "2023", rate: 59 },
-        { year: "2024", rate: 61 },
-        { year: "2025", rate: 63 },
-        { year: "2026", rate: 64.0 },
-      ],
-    },
-    {
-      antibiotic: "Linezolid",
-      abbreviation: "LNZ",
-      currentRate: 0,
-      predictedRate: 1.2,
-      delta: 1.2,
-      historicalData: [
-        { year: "2021", rate: 0 },
-        { year: "2022", rate: 0 },
-        { year: "2023", rate: 0 },
-        { year: "2024", rate: 0 },
-        { year: "2025", rate: 0 },
-        { year: "2026", rate: 0 },
-      ],
-    },
-  ];
+    const res = await fetch(`${BASE_URL}/antibiotics`);
+    const data = await res.json();
+
+    const antibiotics: string[] = data.antibiotics;
+
+    const results = await Promise.all(
+      antibiotics.map(async (ab) => {
+        const r = await fetch(`${BASE_URL}/forecast/${ab}?years=${years}`);
+        return await r.json();
+      }),
+    );
+
+    return results;
+  } catch (error) {
+    console.error("Prediction API error:", error);
+    throw error;
+  }
 }
