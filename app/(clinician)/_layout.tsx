@@ -72,13 +72,6 @@ export default function ClinicianLayout() {
           tabBarIcon: ({ color }) => <Brain size={20} color={color} />,
         }}
       />
-      <Tabs.Screen
-        name="report-view"
-        options={{
-          title: "Report-view",
-          tabBarIcon: ({ color }) => <FileText size={20} color={color} />,
-        }}
-      />
     </Tabs>
   );
 }
