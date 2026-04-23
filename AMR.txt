@@ -1,0 +1,380 @@
+!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AMR App - S. aureus Focus</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        *{font-family:'Inter',sans-serif}
+        .phone-frame{width:375px;height:812px;border-radius:40px;border:8px solid #1a1a1a;overflow:hidden;position:relative;background:#fff;box-shadow:0 25px 50px -12px rgba(0,0,0,.25);flex-shrink:0}
+        .phone-notch{position:absolute;top:0;left:50%;transform:translateX(-50%);width:150px;height:30px;background:#1a1a1a;border-radius:0 0 20px 20px;z-index:50}
+        .screen-content{height:100%;overflow-y:auto;padding-top:50px;padding-bottom:80px;scrollbar-width:none}
+        .screen-content::-webkit-scrollbar{display:none}
+        .bottom-nav{position:absolute;bottom:0;left:0;right:0;height:80px;background:rgba(255,255,255,.95);backdrop-filter:blur(20px);border-top:1px solid #e5e7eb;display:flex;align-items:center;justify-content:space-around;padding:0 12px;z-index:40}
+        .nav-item{display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;transition:.2s}
+        .nav-item.active{color:#047857}
+        .nav-item:not(.active){color:#9ca3af}
+        .nav-item span{font-size:9px;font-weight:500}
+        .resistance-bar{height:8px;border-radius:4px;background:#f3f4f6;overflow:hidden}
+        .resistance-fill{height:100%;border-radius:4px;transition:width .8s}
+        .status-badge{display:inline-flex;align-items:center;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:600}
+        .input-field{width:100%;padding:14px 16px;border:1.5px solid #e5e7eb;border-radius:12px;font-size:14px;transition:.2s;outline:none;background:#fff}
+        .input-field:focus{border-color:#047857;box-shadow:0 0 0 3px rgba(4,120,87,.1)}
+        .chip{display:inline-flex;align-items:center;padding:6px 12px;border-radius:20px;font-size:11px;font-weight:500;border:1.5px solid;cursor:pointer;transition:.2s}
+        .chip.selected{background:#047857;border-color:#047857;color:#fff}
+        .chip:not(.selected){background:#fff;border-color:#d1d5db;color:#6b7280}
+        .toast{position:fixed;bottom:100px;left:50%;transform:translateX(-50%) translateY(20px);background:#065f46;color:#fff;padding:12px 24px;border-radius:12px;font-size:13px;font-weight:500;opacity:0;transition:.3s;z-index:100;white-space:nowrap}
+        .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+        .pulse-dot{width:8px;height:8px;border-radius:50%;background:#10b981;animation:pulse 2s infinite}
+        @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(1.2)}}
+        .fade-in{animation:fadeIn .3s ease}
+        @keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+        .screen-tab{padding:6px 14px;border-radius:20px;font-size:11px;font-weight:500;cursor:pointer;transition:.3s;white-space:nowrap}
+        .screen-tab.active{background:#047857;color:#fff}
+        .screen-tab:not(.active){background:#f3f4f6;color:#6b7280}
+        select.input-field{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%236b7280' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10l-5 5z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;padding-right:36px}
+        .ast-card{border:1.5px solid #e5e7eb;border-radius:12px;padding:12px 14px;display:flex;align-items:center;justify-content:space-between}
+        .ast-card.resistant{border-color:#fecaca;background:#fef2f2}
+        .ast-card.intermediate{border-color:#fde68a;background:#fffbeb}
+        .ast-card.sensitive{border-color:#bbf7d0;background:#f0fdf4}
+        .report-section{background:#f9fafb;border-radius:12px;padding:16px;margin-bottom:12px}
+        .report-section-title{font-size:10px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+        .tab-group{display:flex;background:#f3f4f6;border-radius:12px;padding:3px}
+        .tab-item{flex:1;padding:8px;text-align:center;border-radius:10px;font-size:11px;font-weight:500;cursor:pointer;transition:.3s}
+        .tab-item.active{background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.1);color:#047857;font-weight:600}
+        .tab-item:not(.active){color:#6b7280}
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+
+<div class="bg-white border-b border-gray-200 sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-6 py-4">
+        <h1 class="text-xl font-bold text-gray-900">AMR App — S. aureus Surveillance</h1>
+        <p class="text-sm text-gray-500 mt-1">Lab Entry + Clinician Reports + ML Predictions</p>
+    </div>
+</div>
+
+<div class="bg-white border-b border-gray-200 sticky top-[73px] z-40">
+    <div class="max-w-7xl mx-auto px-6 py-3 overflow-x-auto">
+        <div class="flex gap-2 pb-1" id="screenTabs">
+            <div class="screen-tab active" onclick="showScreen('landing')">Landing</div>
+            <div class="screen-tab" onclick="showScreen('lab-login')">Lab Login</div>
+            <div class="screen-tab" onclick="showScreen('lab-home')">Lab Home</div>
+            <div class="screen-tab" onclick="showScreen('lab-new-sample')">New Sample</div>
+            <div class="screen-tab" onclick="showScreen('lab-isolate')">Identify</div>
+            <div class="screen-tab" onclick="showScreen('lab-ast')">Enter AST</div>
+            <div class="screen-tab" onclick="showScreen('lab-samples')">Sample List</div>
+            <div class="screen-tab" onclick="showScreen('clin-home')">Clin Home</div>
+            <div class="screen-tab" onclick="showScreen('clin-reports')">Reports</div>
+            <div class="screen-tab" onclick="showScreen('clin-report-view')">Report View</div>
+            <div class="screen-tab" onclick="showScreen('clin-amr-data')">AMR Data</div>
+            <div class="screen-tab" onclick="showScreen('clin-predictions')">Predictions</div>
+        </div>
+    </div>
+</div>
+
+<div class="max-w-7xl mx-auto px-6 py-8">
+<div class="flex flex-col items-center gap-8">
+<div class="phone-frame" id="phoneFrame">
+<div class="phone-notch"></div>
+
+<!-- LANDING -->
+<div class="screen-content fade-in" id="screen-landing">
+    <div class="px-6 pt-10">
+        <div class="text-center mb-10">
+            <div class="w-20 h-20 bg-emerald-700 rounded-3xl flex items-center justify-center mx-auto mb-5">
+                <i data-lucide="shield-check" class="w-10 h-10 text-white"></i>
+            </div>
+            <h1 class="text-2xl font-bold text-gray-900">S. aureus AMR</h1>
+            <p class="text-sm text-gray-500 mt-2 leading-relaxed">Staphylococcus aureus Surveillance Platform</p>
+            <p class="text-xs text-gray-400 mt-1">Mbarara University of Science & Technology</p>
+        </div>
+        <div class="space-y-4 mb-8">
+            <button class="w-full bg-emerald-700 text-white rounded-2xl p-5 text-left" onclick="showScreen('lab-login')">
+                <div class="flex items-center gap-4">
+                    <div class="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center"><i data-lucide="microscope" class="w-6 h-6 text-white"></i></div>
+                    <div class="flex-1"><p class="text-base font-bold">Laboratory Personnel</p><p class="text-xs text-emerald-100 mt-1">Sign in to enter lab data</p></div>
+                    <i data-lucide="chevron-right" class="w-5 h-5 text-emerald-200"></i>
+                </div>
+            </button>
+            <button class="w-full bg-white border-2 border-gray-200 rounded-2xl p-5 text-left hover:border-emerald-300 transition-colors" onclick="showScreen('clin-home')">
+                <div class="flex items-center gap-4">
+                    <div class="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center"><i data-lucide="stethoscope" class="w-6 h-6 text-blue-600"></i></div>
+                    <div class="flex-1"><p class="text-base font-bold text-gray-900">Clinician / Physician</p><p class="text-xs text-gray-500 mt-1">Continue to view reports & predictions</p></div>
+                    <i data-lucide="chevron-right" class="w-5 h-5 text-gray-300"></i>
+                </div>
+            </button>
+        </div>
+        <div class="bg-blue-50 border border-blue-200 rounded-xl p-4">
+            <div class="flex items-start gap-3">
+                <i data-lucide="bug" class="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0"></i>
+                <p class="text-xs text-blue-800 leading-relaxed"><strong>Focus Organism:</strong> This platform exclusively tracks <em>Staphylococcus aureus</em> antimicrobial resistance data and ML predictions.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- LAB LOGIN (Updated) -->
+<div class="screen-content fade-in hidden" id="screen-lab-login">
+    <div class="px-6 pt-6">
+        <div class="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center cursor-pointer mb-6" onclick="showScreen('landing')"><i data-lucide="arrow-left" class="w-4 h-4 text-gray-600"></i></div>
+        <div class="flex items-center gap-3 mb-8">
+            <div class="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center"><i data-lucide="microscope" class="w-5 h-5 text-emerald-700"></i></div>
+            <div><h2 class="text-lg font-bold text-gray-900">Lab Personnel Login</h2><p class="text-xs text-gray-500">Access data entry system</p></div>
+        </div>
+        <div class="space-y-4">
+            <div>
+                <label class="text-xs font-medium text-gray-600 mb-1.5 block">Lab Technician ID *</label>
+                <input type="text" class="input-field" placeholder="e.g., LAB-001">
+            </div>
+            <div>
+                <label class="text-xs font-medium text-gray-600 mb-1.5 block">Password *</label>
+                <div class="relative">
+                    <input type="password" class="input-field pr-12" placeholder="Enter password">
+                    <i data-lucide="eye-off" class="w-5 h-5 text-gray-400 absolute right-4 top-1/2 -translate-y-1/2 cursor-pointer"></i>
+                </div>
+            </div>
+            <button class="w-full bg-emerald-700 text-white py-3.5 rounded-xl font-semibold text-sm" onclick="showScreen('lab-home')">Sign In</button>
+        </div>
+        <div class="mt-8 text-center">
+            <p class="text-xs text-gray-400 leading-relaxed">Accounts are pre-provisioned by administrators.<br>If you forgot your credentials, contact your Lab Supervisor.</p>
+        </div>
+    </div>
+</div>
+
+<!-- LAB HOME -->
+<div class="screen-content fade-in hidden" id="screen-lab-home">
+    <div class="px-6 pt-4">
+        <div class="flex items-center justify-between mb-6">
+            <div><p class="text-xs text-gray-500">Good morning</p><h2 class="text-lg font-bold text-gray-900">Joan Mugisha</h2><p class="text-xs text-gray-400">LAB-001 | MUST Microbiology Lab</p></div>
+            <div class="w-9 h-9 bg-emerald-100 rounded-full flex items-center justify-center"><span class="text-sm font-bold text-emerald-700">JM</span></div>
+        </div>
+        <div class="grid grid-cols-2 gap-3 mb-6">
+            <button class="bg-emerald-700 text-white rounded-xl p-4 text-left" onclick="showScreen('lab-new-sample')"><i data-lucide="plus-circle" class="w-6 h-6 mb-2"></i><p class="text-sm font-semibold">New Sample</p><p class="text-xs opacity-80 mt-1">Register S. aureus</p></button>
+            <button class="bg-white border border-gray-200 rounded-xl p-4 text-left" onclick="showScreen('lab-samples')"><i data-lucide="list" class="w-6 h-6 mb-2 text-gray-700"></i><p class="text-sm font-semibold text-gray-900">All Samples</p><p class="text-xs text-gray-500 mt-1">View & manage</p></button>
+        </div>
+        <h3 class="text-sm font-semibold text-gray-900 mb-3">Pending Work</h3>
+        <div class="space-y-2 mb-6">
+            <div class="flex items-center gap-3 p-3 bg-amber-50 rounded-xl border border-amber-200 cursor-pointer" onclick="showScreen('lab-isolate')"><div class="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center"><i data-lucide="flask-conical" class="w-5 h-5 text-amber-600"></i></div><div class="flex-1"><p class="text-sm font-medium text-gray-900">SMP-0485</p><p class="text-xs text-gray-500">Blood — Culture complete, identify S. aureus</p></div><i data-lucide="chevron-right" class="w-4 h-4 text-gray-400"></i></div>
+            <div class="flex items-center gap-3 p-3 bg-blue-50 rounded-xl border border-blue-200 cursor-pointer" onclick="showScreen('lab-ast')"><div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center"><i data-lucide="test-tubes" class="w-5 h-5 text-blue-600"></i></div><div class="flex-1"><p class="text-sm font-medium text-gray-900">SMP-0483</p><p class="text-xs text-gray-500">Wound — S. aureus identified, needs AST</p></div><i data-lucide="chevron-right" class="w-4 h-4 text-gray-400"></i></div>
+        </div>
+        <h3 class="text-sm font-semibold text-gray-900 mb-3">Completed Today</h3>
+        <div class="space-y-2">
+            <div class="flex items-center gap-3 p-3 bg-white border border-gray-200 rounded-xl"><div class="w-10 h-10 bg-green-50 rounded-lg flex items-center justify-center"><i data-lucide="check-circle" class="w-5 h-5 text-green-600"></i></div><div class="flex-1"><p class="text-sm font-medium text-gray-900">SMP-0487</p><p class="text-xs text-gray-500">Blood | S. aureus | 25 AST | Report generated</p></div><span class="status-badge bg-green-100 text-green-700">Done</span></div>
+        </div>
+    </div>
+    <div class="bottom-nav"><div class="nav-item active"><i data-lucide="home" class="w-5 h-5"></i><span>Home</span></div><div class="nav-item" onclick="showScreen('lab-new-sample')"><i data-lucide="plus-circle" class="w-5 h-5"></i><span>New</span></div><div class="nav-item" onclick="showScreen('lab-samples')"><i data-lucide="list" class="w-5 h-5"></i><span>Samples</span></div><div class="nav-item"><i data-lucide="bar-chart-3" class="w-5 h-5"></i><span>Stats</span></div><div class="nav-item"><i data-lucide="user" class="w-5 h-5"></i><span>Profile</span></div></div>
+</div>
+
+<!-- LAB NEW SAMPLE -->
+<div class="screen-content fade-in hidden" id="screen-lab-new-sample">
+    <div class="px-6 pt-4">
+        <div class="flex items-center gap-3 mb-4"><div class="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center cursor-pointer" onclick="showScreen('lab-home')"><i data-lucide="arrow-left" class="w-4 h-4 text-gray-600"></i></div><h2 class="text-lg font-bold text-gray-900">Register New Sample</h2></div>
+        <div class="bg-blue-50 border border-blue-200 rounded-xl p-3 mb-5 flex items-center gap-2"><i data-lucide="info" class="w-4 h-4 text-blue-600 flex-shrink-0"></i><p class="text-xs text-blue-800">Target Organism: <strong>Staphylococcus aureus</strong>. Only process samples if S. aureus is suspected or isolated.</p></div>
+        <div class="space-y-4">
+            <div><label class="text-xs font-semibold text-gray-700 mb-1.5 block">Sample ID</label><input type="text" class="input-field bg-gray-50" value="SMP-2024-0488" readonly></div>
+            <div><label class="text-xs font-semibold text-gray-700 mb-1.5 block">Originating Facility *</label><select class="input-field"><option>Mbarara Regional Referral Hospital</option><option>MUST Teaching Hospital</option></select></div>
+            <div><label class="text-xs font-semibold text-gray-700 mb-1.5 block">Specimen Type *</label><select class="input-field"><option value="">Select...</option><option>Blood Culture</option><option>Urine</option><option>Wound Swab</option><option>Sputum</option><option>CSF</option></select></div>
+            <div class="grid grid-cols-2 gap-3">
+                <div><label class="text-xs font-semibold text-gray-700 mb-1.5 block">Collection Date *</label><input type="date" class="input-field"></div>
+                <div><label class="text-xs font-semibold text-gray-700 mb-1.5 block">Received Date *</label><input type="date" class="input-field"></div>
+            </div>
+            <div class="bg-gray-50 rounded-xl p-4">
+                <p class="text-xs font-semibold text-gray-700 mb-3">Patient Demographics (Anonymous)</p>
+                <div class="grid grid-cols-2 gap-3">
+                    <div><label class="text-xs text-gray-600 mb-1 block">Age Group</label><select class="input-field text-xs py-2.5"><option>Neonate (0-28d)</option><option>Infant (1-12m)</option><option>Child (1-14y)</option><option selected>Adult (15-64y)</option><option>Elderly (65+y)</option></select></div>
+                    <div><label class="text-xs text-gray-600 mb-1 block">Sex</label><select class="input-field text-xs py-2.5"><option>Male</option><option selected>Female</option><option>Unknown</option></select></div>
+                </div>
+                <div class="grid grid-cols-2 gap-3 mt-3">
+                    <div><label class="text-xs text-gray-600 mb-1 block">Patient Type</label><select class="input-field text-xs py-2.5"><option>Inpatient</option><option selected>Outpatient</option></select></div>
+                    <div><label class="text-xs text-gray-600 mb-1 block">Ward</label><input type="text" class="input-field text-xs py-2.5" placeholder="e.g., ICU"></div>
+                </div>
+            </div>
+            <button class="w-full bg-emerald-700 text-white py-3.5 rounded-xl text-sm font-semibold" onclick="showScreen('lab-isolate')">Save & Continue to Isolate</button>
+        </div>
+    </div>
+    <div class="bottom-nav"><div class="nav-item" onclick="showScreen('lab-home')"><i data-lucide="home" class="w-5 h-5"></i><span>Home</span></div><div class="nav-item active"><i data-lucide="plus-circle" class="w-5 h-5"></i><span>New</span></div><div class="nav-item" onclick="showScreen('lab-samples')"><i data-lucide="list" class="w-5 h-5"></i><span>Samples</span></div><div class="nav-item"><i data-lucide="bar-chart-3" class="w-5 h-5"></i><span>Stats</span></div><div class="nav-item"><i data-lucide="user" class="w-5 h-5"></i><span>Profile</span></div></div>
+</div>
+
+<!-- LAB IDENTIFY ISOLATE (S. aureus Only) -->
+<div class="screen-content fade-in hidden" id="screen-lab-isolate">
+    <div class="px-6 pt-4">
+        <div class="flex items-center gap-3 mb-4"><div class="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center cursor-pointer" onclick="showScreen('lab-new-sample')"><i data-lucide="arrow-left" class="w-4 h-4 text-gray-600"></i></div><div><h2 class="text-lg font-bold text-gray-900">Confirm Isolation</h2><p class="text-xs text-gray-500">SMP-2024-0488 | Blood Culture</p></div></div>
+        <div class="space-y-4">
+            <div><label class="text-xs font-semibold text-gray-700 mb-2 block">Culture Result *</label><div class="grid grid-cols-2 gap-2"><div class="chip text-center py-3 selected" onclick="selectChip(this)">Growth Detected</div><div class="chip text-center py-3" onclick="selectChip(this)">No Growth</div></div></div>
+            <div><label class="text-xs font-semibold text-gray-700 mb-1.5 block">Organism *</label><input type="text" class="input-field bg-gray-50 font-medium" value="Staphylococcus aureus" readonly><p class="text-xs text-gray-400 mt-1">Platform is restricted to S. aureus surveillance.</p></div>
+            <div><label class="text-xs font-semibold text-gray-700 mb-1.5 block">Identification Method *</label><select class="input-field"><option>Culture Characteristics</option><option>Biochemical Tests</option><option selected>MALDI-TOF</option><option>VITEK 2</option></select></div>
+            <button class="w-full bg-emerald-700 text-white py-3.5 rounded-xl text-sm font-semibold" onclick="showScreen('lab-ast')">Confirm & Continue to AST</button>
+        </div>
+    </div>
+    <div class="bottom-nav"><div class="nav-item" onclick="showScreen('lab-home')"><i data-lucide="home" class="w-5 h-5"></i><span>Home</span></div><div class="nav-item active"><i data-lucide="plus-circle" class="w-5 h-5"></i><span>New</span></div><div class="nav-item" onclick="showScreen('lab-samples')"><i data-lucide="list" class="w-5 h-5"></i><span>Samples</span></div><div class="nav-item"><i data-lucide="bar-chart-3" class="w-5 h-5"></i><span>Stats</span></div><div class="nav-item"><i data-lucide="user" class="w-5 h-5"></i><span>Profile</span></div></div>
+</div>
+
+<!-- LAB ENTER AST -->
+<div class="screen-content fade-in hidden" id="screen-lab-ast">
+    <div class="px-6 pt-4">
+        <div class="flex items-center gap-3 mb-4"><div class="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center cursor-pointer" onclick="showScreen('lab-isolate')"><i data-lucide="arrow-left" class="w-4 h-4 text-gray-600"></i></div><div><h2 class="text-lg font-bold text-gray-900">Enter AST Results</h2><p class="text-xs text-gray-500">SMP-0488 | S. aureus</p></div></div>
+        <div class="mb-4"><label class="text-xs font-semibold text-gray-700 mb-1.5 block">Test Method *</label><select class="input-field"><option selected>Disc Diffusion (Kirby-Bauer)</option><option>Broth Microdilution (MIC)</option><option>VITEK 2</option></select></div>
+        <div class="flex items-center justify-between mb-3"><span class="text-xs font-semibold text-gray-700">S. aureus Results</span><span class="text-xs text-gray-400">4 of 25 entered</span></div>
+        <div class="space-y-2 mb-4">
+            <div class="ast-card resistant"><span class="text-sm font-medium">Ampicillin (AMP)</span><div class="flex items-center gap-2"><span class="text-xs text-gray-500">6mm</span><span class="status-badge bg-red-500 text-white text-xs">R</span></div></div>
+            <div class="ast-card resistant"><span class="text-sm font-medium">Ceftriaxone (CRO)</span><div class="flex items-center gap-2"><span class="text-xs text-gray-500">14mm</span><span class="status-badge bg-red-500 text-white text-xs">R</span></div></div>
+            <div class="ast-card resistant"><span class="text-sm font-medium">Erythromycin (ERY)</span><div class="flex items-center gap-2"><span class="text-xs text-gray-500">10mm</span><span class="status-badge bg-red-500 text-white text-xs">R</span></div></div>
+            <div class="ast-card sensitive"><span class="text-sm font-medium">Linezolid (LNZ)</span><div class="flex items-center gap-2"><span class="text-xs text-gray-500">28mm</span><span class="status-badge bg-green-500 text-white text-xs">S</span></div></div>
+            <div class="bg-white border-2 border-dashed border-gray-300 rounded-xl p-3"><div class="flex items-center justify-between"><span class="text-sm text-gray-400">Gentamicin (GEN)</span><div class="flex items-center gap-2"><input type="number" class="w-14 text-xs text-center border border-gray-300 rounded-lg py-1.5" placeholder="mm"><select class="text-xs border border-gray-300 rounded-lg py-1.5 px-2"><option value="">—</option><option>S</option><option>I</option><option>R</option></select></div></div></div>
+        </div>
+        <div class="bg-red-50 border border-red-200 rounded-xl p-3 mb-4"><div class="flex items-center gap-2 mb-1"><i data-lucide="alert-triangle" class="w-4 h-4 text-red-600"></i><span class="text-xs font-bold text-red-800">MDR Detected</span></div><p class="text-xs text-red-700">Resistant to 3+ antibiotic classes.</p></div>
+        <button class="w-full bg-emerald-700 text-white py-3.5 rounded-xl text-sm font-semibold" onclick="showToast('S. aureus AST saved! Report generated.')">Complete & Generate Report</button>
+    </div>
+    <div class="bottom-nav"><div class="nav-item" onclick="showScreen('lab-home')"><i data-lucide="home" class="w-5 h-5"></i><span>Home</span></div><div class="nav-item active"><i data-lucide="plus-circle" class="w-5 h-5"></i><span>New</span></div><div class="nav-item" onclick="showScreen('lab-samples')"><i data-lucide="list" class="w-5 h-5"></i><span>Samples</span></div><div class="nav-item"><i data-lucide="bar-chart-3" class="w-5 h-5"></i><span>Stats</span></div><div class="nav-item"><i data-lucide="user" class="w-5 h-5"></i><span>Profile</span></div></div>
+</div>
+
+<!-- LAB SAMPLE LIST -->
+<div class="screen-content fade-in hidden" id="screen-lab-samples">
+    <div class="px-6 pt-4">
+        <h2 class="text-lg font-bold text-gray-900 mb-4">S. aureus Samples</h2>
+        <div class="relative mb-4"><i data-lucide="search" class="w-4 h-4 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2"></i><input type="text" class="input-field pl-11" placeholder="Search sample ID..."></div>
+        <div class="tab-group mb-4"><div class="tab-item active">All</div><div class="tab-item">Pending</div><div class="tab-item">Completed</div></div>
+        <div class="space-y-2">
+            <div class="bg-white border border-gray-200 rounded-xl p-3 cursor-pointer" onclick="showScreen('lab-ast')"><div class="flex items-center justify-between mb-1"><span class="text-sm font-bold text-gray-900">SMP-0488</span><span class="status-badge bg-blue-100 text-blue-700">AST</span></div><p class="text-xs text-gray-500">Blood | S. aureus | 4/25 AST done</p></div>
+            <div class="bg-white border border-gray-200 rounded-xl p-3"><div class="flex items-center justify-between mb-1"><span class="text-sm font-bold text-gray-900">SMP-0487</span><span class="status-badge bg-green-100 text-green-700">Done</span></div><p class="text-xs text-gray-500">Blood | S. aureus (MDR) | 25 AST</p></div>
+            <div class="bg-white border border-gray-200 rounded-xl p-3"><div class="flex items-center justify-between mb-1"><span class="text-sm font-bold text-gray-900">SMP-0486</span><span class="status-badge bg-green-100 text-green-700">Done</span></div><p class="text-xs text-gray-500">Wound | S. aureus | 25 AST</p></div>
+        </div>
+    </div>
+    <div class="bottom-nav"><div class="nav-item" onclick="showScreen('lab-home')"><i data-lucide="home" class="w-5 h-5"></i><span>Home</span></div><div class="nav-item" onclick="showScreen('lab-new-sample')"><i data-lucide="plus-circle" class="w-5 h-5"></i><span>New</span></div><div class="nav-item active"><i data-lucide="list" class="w-5 h-5"></i><span>Samples</span></div><div class="nav-item"><i data-lucide="bar-chart-3" class="w-5 h-5"></i><span>Stats</span></div><div class="nav-item"><i data-lucide="user" class="w-5 h-5"></i><span>Profile</span></div></div>
+</div>
+
+<!-- CLIN HOME -->
+<div class="screen-content fade-in hidden" id="screen-clin-home">
+    <div class="px-6 pt-4">
+        <div class="flex items-center justify-between mb-5"><div><h2 class="text-lg font-bold text-gray-900">S. aureus AMR</h2><p class="text-xs text-gray-400">Viewing as Clinician</p></div><button class="flex items-center gap-1 bg-gray-100 px-3 py-1.5 rounded-lg text-xs text-gray-600" onclick="showScreen('landing')"><i data-lucide="log-out" class="w-3 h-3"></i>Exit</button></div>
+        <div class="bg-blue-50 border border-blue-200 rounded-xl p-3 mb-5 flex items-center gap-2"><i data-lucide="eye" class="w-4 h-4 text-blue-600"></i><span class="text-xs text-blue-700">Read-only access — S. aureus Lab reports & ML predictions</span></div>
+        <div class="grid grid-cols-2 gap-3 mb-6">
+            <div class="bg-white border border-gray-200 rounded-xl p-4 cursor-pointer" onclick="showScreen('clin-reports')"><div class="w-8 h-8 bg-emerald-100 rounded-lg flex items-center justify-center mb-2"><i data-lucide="file-text" class="w-4 h-4 text-emerald-600"></i></div><p class="text-xl font-bold text-gray-900">23</p><p class="text-xs text-gray-500">Lab Reports</p></div>
+            <div class="bg-white border border-gray-200 rounded-xl p-4 cursor-pointer" onclick="showScreen('clin-predictions')"><div class="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center mb-2"><i data-lucide="brain" class="w-4 h-4 text-purple-600"></i></div><p class="text-xl font-bold text-gray-900">12</p><p class="text-xs text-gray-500">Predictions</p></div>
+        </div>
+        <h3 class="text-sm font-semibold text-gray-900 mb-3">Recent S. aureus Reports</h3>
+        <div class="space-y-2 mb-6">
+            <div class="bg-white border border-gray-200 rounded-xl p-4 cursor-pointer" onclick="showScreen('clin-report-view')"><div class="flex items-center justify-between mb-1"><span class="text-sm font-bold text-gray-900">LAB-0487</span><span class="text-xs text-gray-400">Jan 15</span></div><div class="flex items-center gap-2 mb-1"><span class="status-badge bg-red-100 text-red-700">S. aureus (MDR)</span><span class="text-xs text-gray-500">Blood</span></div><div class="flex gap-3 text-xs"><span class="text-red-600">4R</span><span class="text-amber-600">1I</span><span class="text-green-600">20S</span></div></div>
+            <div class="bg-white border border-gray-200 rounded-xl p-4 cursor-pointer"><div class="flex items-center justify-between mb-1"><span class="text-sm font-bold text-gray-900">LAB-0486</span><span class="text-xs text-gray-400">Jan 15</span></div><div class="flex items-center gap-2 mb-1"><span class="status-badge bg-gray-100 text-gray-700">S. aureus (MSSA)</span><span class="text-xs text-gray-500">Wound</span></div><div class="flex gap-3 text-xs"><span class="text-red-600">2R</span><span class="text-green-600">23S</span></div></div>
+        </div>
+    </div>
+    <div class="bottom-nav"><div class="nav-item active"><i data-lucide="home" class="w-5 h-5"></i><span>Home</span></div><div class="nav-item" onclick="showScreen('clin-reports')"><i data-lucide="file-text" class="w-5 h-5"></i><span>Reports</span></div><div class="nav-item" onclick="showScreen('clin-amr-data')"><i data-lucide="bar-chart-3" class="w-5 h-5"></i><span>AMR Data</span></div><div class="nav-item" onclick="showScreen('clin-predictions')"><i data-lucide="brain" class="w-5 h-5"></i><span>Predictions</span></div></div>
+</div>
+
+<!-- CLIN REPORTS LIST -->
+<div class="screen-content fade-in hidden" id="screen-clin-reports">
+    <div class="px-6 pt-4">
+        <h2 class="text-lg font-bold text-gray-900 mb-4">S. aureus Lab Reports</h2>
+        <div class="relative mb-4"><i data-lucide="search" class="w-4 h-4 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2"></i><input type="text" class="input-field pl-11" placeholder="Search report number..."></div>
+        <div class="flex gap-2 mb-4"><div class="chip selected">All</div><div class="chip">MRSA Only</div><div class="chip">MSSA Only</div></div>
+        <div class="space-y-2">
+            <div class="bg-white border border-gray-200 rounded-xl p-4 cursor-pointer" onclick="showScreen('clin-report-view')"><div class="flex items-center justify-between mb-1"><span class="text-sm font-bold">LAB-2024-0487</span><span class="text-xs text-gray-400">Jan 15, 14:32</span></div><div class="flex items-center gap-2 mb-1"><span class="status-badge bg-red-100 text-red-700">S. aureus (MRSA)</span><span class="text-xs text-gray-500">Blood | Adult F</span></div><p class="text-xs text-gray-400">MUST Micro Lab | 25 antibiotics tested</p></div>
+            <div class="bg-white border border-gray-200 rounded-xl p-4 cursor-pointer"><div class="flex items-center justify-between mb-1"><span class="text-sm font-bold">LAB-2024-0486</span><span class="text-xs text-gray-400">Jan 15, 11:20</span></div><div class="flex items-center gap-2 mb-1"><span class="status-badge bg-gray-100 text-gray-700">S. aureus (MSSA)</span><span class="text-xs text-gray-500">Wound | Adult M</span></div><p class="text-xs text-gray-400">MUST Micro Lab | 25 antibiotics tested</p></div>
+        </div>
+    </div>
+    <div class="bottom-nav"><div class="nav-item" onclick="showScreen('clin-home')"><i data-lucide="home" class="w-5 h-5"></i><span>Home</span></div><div class="nav-item active"><i data-lucide="file-text" class="w-5 h-5"></i><span>Reports</span></div><div class="nav-item" onclick="showScreen('clin-amr-data')"><i data-lucide="bar-chart-3" class="w-5 h-5"></i><span>AMR Data</span></div><div class="nav-item" onclick="showScreen('clin-predictions')"><i data-lucide="brain" class="w-5 h-5"></i><span>Predictions</span></div></div>
+</div>
+
+<!-- CLIN REPORT VIEW -->
+<div class="screen-content fade-in hidden" id="screen-clin-report-view">
+    <div class="px-6 pt-4">
+        <div class="flex items-center gap-3 mb-4"><div class="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center cursor-pointer" onclick="showScreen('clin-reports')"><i data-lucide="arrow-left" class="w-4 h-4 text-gray-600"></i></div><div class="flex-1"><h2 class="text-lg font-bold text-gray-900">Lab Report</h2><p class="text-xs text-gray-500">LAB-2024-0487 | FINAL</p></div><button class="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center"><i data-lucide="download" class="w-4 h-4 text-gray-600"></i></button></div>
+        <div class="bg-gray-900 text-white rounded-xl p-4 mb-4"><div class="flex items-center justify-between mb-2"><div><p class="text-xs text-gray-400">MUST Microbiology Laboratory</p><p class="text-sm font-bold">S. aureus Susceptibility Report</p></div><span class="text-xs bg-emerald-700 px-2 py-1 rounded">FINAL</span></div><div class="grid grid-cols-2 gap-2 text-xs mt-2"><div><span class="text-gray-400">Report #: </span><span>LAB-2024-0487</span></div><div><span class="text-gray-400">Date: </span><span>15 Jan 2024</span></div><div><span class="text-gray-400">Specimen: </span><span>Blood Culture</span></div><div><span class="text-gray-400">Patient: </span><span>Adult Female</span></div></div></div>
+        <div class="report-section"><p class="report-section-title">Organism Identified</p><div class="flex items-center gap-3"><div class="w-12 h-12 bg-red-50 rounded-xl flex items-center justify-center"><i data-lucide="bug" class="w-6 h-6 text-red-500"></i></div><div><p class="text-base font-bold text-gray-900">Staphylococcus aureus</p><p class="text-xs text-gray-500">Gram-Positive Cocci | MALDI-TOF</p></div></div><div class="mt-2"><span class="status-badge bg-red-100 text-red-700">Methicillin-Resistant (MRSA)</span></div></div>
+        <div class="report-section"><p class="report-section-title">Antimicrobial Susceptibility (25 Antibiotics)</p><p class="text-xs text-gray-400 mb-3">Disc Diffusion | CLSI Guidelines</p><div class="space-y-2">
+            <div class="flex items-center justify-between p-2 bg-red-50 rounded-lg"><span class="text-xs">Penicillin G (PEN)</span><div class="flex items-center gap-2"><span class="text-xs text-gray-500">6mm</span><span class="status-badge bg-red-500 text-white text-xs">R</span></div></div>
+            <div class="flex items-center justify-between p-2 bg-red-50 rounded-lg"><span class="text-xs">Ampicillin (AMP)</span><div class="flex items-center gap-2"><span class="text-xs text-gray-500">6mm</span><span class="status-badge bg-red-500 text-white text-xs">R</span></div></div>
+            <div class="flex items-center justify-between p-2 bg-red-50 rounded-lg"><span class="text-xs">Ceftriaxone (CRO)</span><div class="flex items-center gap-2"><span class="text-xs text-gray-500">14mm</span><span class="status-badge bg-red-500 text-white text-xs">R</span></div></div>
+            <div class="flex items-center justify-between p-2 bg-amber-50 rounded-lg"><span class="text-xs">Ciprofloxacin (CIP)</span><div class="flex items-center gap-2"><span class="text-xs text-gray-500">18mm</span><span class="status-badge bg-amber-500 text-white text-xs">I</span></div></div>
+            <div class="flex items-center justify-between p-2 bg-green-50 rounded-lg"><span class="text-xs">Vancomycin (VAN)</span><div class="flex items-center gap-2"><span class="text-xs text-gray-500">20mm</span><span class="status-badge bg-green-500 text-white text-xs">S</span></div></div>
+            <div class="flex items-center justify-between p-2 bg-green-50 rounded-lg"><span class="text-xs">Linezolid (LNZ)</span><div class="flex items-center gap-2"><span class="text-xs text-gray-500">28mm</span><span class="status-badge bg-green-500 text-white text-xs">S</span></div></div>
+            <p class="text-xs text-gray-400 text-center pt-2">+ 19 more antibiotics tested (scroll full report to view)</p>
+        </div></div>
+        <div class="report-section"><p class="report-section-title">Local S. aureus Resistance Context</p><p class="text-xs text-gray-600 leading-relaxed">Based on 248 S. aureus isolates tested at MUST Lab in 2024: CRO 58.8% R, ERY 64.0% R, LNZ 0% R. This isolate's pattern is consistent with local MRSA trends.</p></div>
+        <div class="border-t border-gray-200 pt-3 mt-3"><p class="text-xs text-gray-400">Authorized by: J. Mugisha (LAB-001) | Jan 15, 2024 14:32</p></div>
+    </div>
+    <div class="bottom-nav"><div class="nav-item" onclick="showScreen('clin-home')"><i data-lucide="home" class="w-5 h-5"></i><span>Home</span></div><div class="nav-item active"><i data-lucide="file-text" class="w-5 h-5"></i><span>Reports</span></div><div class="nav-item" onclick="showScreen('clin-amr-data')"><i data-lucide="bar-chart-3" class="w-5 h-5"></i><span>AMR Data</span></div><div class="nav-item" onclick="showScreen('clin-predictions')"><i data-lucide="brain" class="w-5 h-5"></i><span>Predictions</span></div></div>
+</div>
+
+<!-- CLIN AMR DATA (S. aureus Only) -->
+<div class="screen-content fade-in hidden" id="screen-clin-amr-data">
+    <div class="px-6 pt-4">
+        <h2 class="text-lg font-bold text-gray-900 mb-1">S. aureus Resistance Rates</h2>
+        <p class="text-xs text-gray-500 mb-4">248 isolates tested | MUST Lab | Filter by Year</p>
+        <div class="flex items-center gap-2 mb-5"><select class="text-xs bg-white border border-gray-200 rounded-lg px-3 py-1.5 font-medium border-gray-300"><option selected>2024</option><option>2023</option><option>2022</option><option>2021</option></select><span class="text-xs text-gray-500 ml-auto">All 25 Antibiotics</span></div>
+        <div class="space-y-3 mb-4">
+            <div><div class="flex items-center justify-between mb-1"><span class="text-sm font-medium">Tetracycline (TCY)</span><span class="text-sm font-bold text-red-600">97.4%</span></div><div class="resistance-bar"><div class="resistance-fill bg-red-500" style="width:97.4%"></div></div></div>
+            <div><div class="flex items-center justify-between mb-1"><span class="text-sm font-medium">Erythromycin (ERY)</span><span class="text-sm font-bold text-red-600">64.0%</span></div><div class="resistance-bar"><div class="resistance-fill bg-red-500" style="width:64%"></div></div></div>
+            <div><div class="flex items-center justify-between mb-1"><span class="text-sm font-medium">Gentamicin (GEN)</span><span class="text-sm font-bold text-red-600">62.9%</span></div><div class="resistance-bar"><div class="resistance-fill bg-red-500" style="width:62.9%"></div></div></div>
+            <div><div class="flex items-center justify-between mb-1"><span class="text-sm font-medium">Ceftriaxone (CRO)</span><span class="text-sm font-bold text-red-600">58.8%</span></div><div class="resistance-bar"><div class="resistance-fill bg-red-500" style="width:58.8%"></div></div></div>
+            <div><div class="flex items-center justify-between mb-1"><span class="text-sm font-medium">Ciprofloxacin (CIP)</span><span class="text-sm font-bold text-amber-600">48.2%</span></div><div class="resistance-bar"><div class="resistance-fill bg-amber-500" style="width:48.2%"></div></div></div>
+            <div><div class="flex items-center justify-between mb-1"><span class="text-sm font-medium">Ampicillin (AMP)</span><span class="text-sm font-bold text-green-600">16.6%</span></div><div class="resistance-bar"><div class="resistance-fill bg-green-500" style="width:16.6%"></div></div></div>
+            <div><div class="flex items-center justify-between mb-1"><span class="text-sm font-medium">Linezolid (LNZ)</span><span class="text-sm font-bold text-green-600">0%</span></div><div class="resistance-bar"><div class="resistance-fill bg-green-500" style="width:0%"></div></div></div>
+            <div><div class="flex items-center justify-between mb-1"><span class="text-sm font-medium">Vancomycin (VAN)</span><span class="text-sm font-bold text-green-600">0%</span></div><div class="resistance-bar"><div class="resistance-fill bg-green-500" style="width:0%"></div></div></div>
+        </div>
+    </div>
+    <div class="bottom-nav"><div class="nav-item" onclick="showScreen('clin-home')"><i data-lucide="home" class="w-5 h-5"></i><span>Home</span></div><div class="nav-item" onclick="showScreen('clin-reports')"><i data-lucide="file-text" class="w-5 h-5"></i><span>Reports</span></div><div class="nav-item active"><i data-lucide="bar-chart-3" class="w-5 h-5"></i><span>AMR Data</span></div><div class="nav-item" onclick="showScreen('clin-predictions')"><i data-lucide="brain" class="w-5 h-5"></i><span>Predictions</span></div></div>
+</div>
+
+<!-- CLIN PREDICTIONS -->
+<div class="screen-content fade-in hidden" id="screen-clin-predictions">
+    <div class="px-6 pt-4">
+        <div class="flex items-center gap-3 mb-4"><div class="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center cursor-pointer" onclick="showScreen('clin-home')"><i data-lucide="arrow-left" class="w-4 h-4 text-gray-600"></i></div><h2 class="text-lg font-bold text-gray-900">S. aureus ML Predictions</h2></div>
+        <div class="bg-purple-50 border border-purple-200 rounded-xl p-4 mb-5"><div class="flex items-center gap-2 mb-2"><i data-lucide="cpu" class="w-4 h-4 text-purple-600"></i><span class="text-xs font-bold text-purple-800">Python ML Model v2.1 (Random Forest)</span></div><p class="text-xs text-purple-700">Training data: S. aureus isolates (1996-2022)</p><div class="flex gap-3 mt-2 text-xs text-purple-600"><span>Accuracy: 87.3%</span><span>AUC: 0.89</span></div></div>
+        <div class="flex gap-2 mb-4"><select class="text-xs bg-white border border-gray-200 rounded-lg px-3 py-1.5 font-medium"><option>Ceftriaxone (CRO)</option><option>Erythromycin (ERY)</option><option>Gentamicin (GEN)</option><option>Linezolid (LNZ)</option></select></div>
+        <div class="bg-white border border-gray-200 rounded-xl p-4 mb-4"><p class="text-xs font-semibold text-gray-900 mb-1">S. aureus → Ceftriaxone Trend</p><p class="text-xs text-gray-400 mb-3">Historical + 6-month ML prediction</p><div style="height:180px"><canvas id="predChart"></canvas></div></div>
+        <p class="text-xs font-semibold text-gray-500 mb-3">NEXT 6 MONTHS</p>
+        <div class="space-y-2 mb-4">
+            <div class="bg-white border border-gray-200 rounded-xl p-3"><div class="flex items-center justify-between mb-1"><span class="text-sm font-semibold">Ceftriaxone (CRO)</span><span class="text-lg font-bold text-red-600">72%</span></div><div class="resistance-bar"><div class="resistance-fill bg-red-500" style="width:72%"></div></div><div class="flex justify-between text-xs mt-1"><span class="text-gray-400">Now: 59%</span><span class="text-red-600 font-medium">↑ +13%</span></div></div>
+            <div class="bg-white border border-gray-200 rounded-xl p-3"><div class="flex items-center justify-between mb-1"><span class="text-sm font-semibold">Erythromycin (ERY)</span><span class="text-lg font-bold text-red-600">68%</span></div><div class="resistance-bar"><div class="resistance-fill bg-red-500" style="width:68%"></div></div><div class="flex justify-between text-xs mt-1"><span class="text-gray-400">Now: 64%</span><span class="text-red-600 font-medium">↑ +4%</span></div></div>
+            <div class="bg-white border border-gray-200 rounded-xl p-3"><div class="flex items-center justify-between mb-1"><span class="text-sm font-semibold">Linezolid (LNZ)</span><span class="text-lg font-bold text-green-600">1.2%</span></div><div class="resistance-bar"><div class="resistance-fill bg-green-500" style="width:1.2%"></div></div><div class="flex justify-between text-xs mt-1"><span class="text-gray-400">Now: 0%</span><span class="text-green-600 font-medium">↑ +1.2%</span></div></div>
+        </div>
+        <div class="bg-amber-50 border border-amber-200 rounded-xl p-3"><div class="flex items-start gap-2"><i data-lucide="alert-triangle" class="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0"></i><p class="text-xs text-amber-800">Statistical probabilities from ML model. Use alongside actual lab AST results.</p></div></div>
+    </div>
+    <div class="bottom-nav"><div class="nav-item" onclick="showScreen('clin-home')"><i data-lucide="home" class="w-5 h-5"></i><span>Home</span></div><div class="nav-item" onclick="showScreen('clin-reports')"><i data-lucide="file-text" class="w-5 h-5"></i><span>Reports</span></div><div class="nav-item" onclick="showScreen('clin-amr-data')"><i data-lucide="bar-chart-3" class="w-5 h-5"></i><span>AMR Data</span></div><div class="nav-item active"><i data-lucide="brain" class="w-5 h-5"></i><span>Predictions</span></div></div>
+</div>
+
+</div>
+</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+lucide.createIcons();
+let predChartInstance=null;
+
+function showScreen(id){
+    document.querySelectorAll('[id^="screen-"]').forEach(el=>{el.classList.add('hidden');el.classList.remove('fade-in')});
+    const s=document.getElementById('screen-'+id);
+    if(s){s.classList.remove('hidden');setTimeout(()=>s.classList.add('fade-in'),10)}
+    document.querySelectorAll('.screen-tab').forEach(t=>t.classList.remove('active'));
+    if(event&&event.target)event.target.classList.add('active');
+    lucide.createIcons();
+    if(id==='clin-predictions')setTimeout(initPredChart,100);
+}
+
+function selectChip(el){
+    el.parentElement.querySelectorAll('.chip').forEach(c=>c.classList.remove('selected'));
+    el.classList.add('selected');
+}
+
+function showToast(msg){
+    const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');
+    setTimeout(()=>t.classList.remove('show'),3000);
+}
+
+function initPredChart(){
+    if(predChartInstance)predChartInstance.destroy();
+    const ctx=document.getElementById('predChart');
+    if(!ctx)return;
+    predChartInstance=new Chart(ctx,{type:'line',data:{labels:['2018','2019','2020','2021','2022','2023','H1','H2'],datasets:[{label:'Historical',data:[38,42,50,59,59,62,null,null],borderColor:'#047857',backgroundColor:'rgba(4,120,87,.1)',fill:true,tension:.3,pointRadius:4,pointBackgroundColor:'#047857'},{label:'Predicted',data:[null,null,null,null,null,62,67,72],borderColor:'#8b5cf6',borderDash:[6,4],backgroundColor:'rgba(139,92,246,.1)',fill:true,tension:.3,pointRadius:4,pointBackgroundColor:'#8b5cf6',pointStyle:'triangle'},{label:'CI Upper',data:[null,null,null,null,null,62,73,79],borderColor:'transparent',backgroundColor:'rgba(139,92,246,.05)',fill:'+1',pointRadius:0},{label:'CI Lower',data:[null,null,null,null,null,62,61,65],borderColor:'transparent',backgroundColor:'rgba(139,92,246,.05)',fill:'-1',pointRadius:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.parsed.y?c.parsed.y+'%':''}}},scales:{y:{beginAtZero:true,max:100,ticks:{callback:v=>v+'%',font:{size:10}},grid:{color:'#f3f4f6'}},x:{ticks:{font:{size:10}},grid:{display:false}}}}});
+}
+</script>
+</body>
+</html>
