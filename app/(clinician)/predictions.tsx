@@ -1,138 +1,215 @@
-import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Dimensions } from 'react-native';
-import ScreenHeader from '../../components/layout/ScreenHeader';
-
-import { usePredictions } from '../../hooks/usePredictions';
-import { ActivityIndicator } from 'react-native';
-import { LineChart } from 'react-native-chart-kit';
-import { TrendingUp, Info } from 'lucide-react-native';
+import { Info, TrendingUp } from "lucide-react-native";
+import React, { useState } from "react";
+import {
+  ActivityIndicator,
+  Dimensions,
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { LineChart } from "react-native-chart-kit";
+import ScreenHeader from "../../components/layout/ScreenHeader";
+import { usePredictions } from "../../hooks/usePredictions";
 
 export default function ClinicianPredictions() {
-  const { predictions, isLoading } = usePredictions();
-  const [selectedAb, setSelectedAb] = useState<string>('Oxacillin');
+  // 🔥 user-controlled forecast years
+  const [forecastYears, setForecastYears] = useState(5);
 
-  if (isLoading) {
+  const { predictions, isLoading } = usePredictions(forecastYears);
+
+  const [selectedAb, setSelectedAb] = useState<string>("");
+
+  if (!predictions.length) {
     return (
-      <View className="flex-1 bg-gray-50">
-        <ScreenHeader title="ML Predictions" subtitle="Next 6 Months" />
-        <View className="flex-1 justify-center items-center">
-          <ActivityIndicator size="large" color="#047857" />
-        </View>
-        
+      <View className="flex-1 justify-center items-center">
+        <Text>No prediction data available</Text>
       </View>
     );
   }
 
-  const currentPred = predictions.find(p => p.antibiotic === selectedAb) || predictions[0];
+  const currentPred =
+    predictions.find((p) => p.antibiotic === selectedAb) || predictions[0];
+
+  const labels = currentPred.historicalData.map((d) => d.year);
+
+  const mainData = currentPred.historicalData.map((d) => d.rate);
+  const upperData = currentPred.historicalData.map((d) => d.upper);
+  const lowerData = currentPred.historicalData.map((d) => d.lower);
 
   const chartData = {
-    labels: [...(currentPred?.historicalData.map(d => d.year) || []), 'Next 6m'],
+    labels,
     datasets: [
       {
-        data: [...(currentPred?.historicalData.map(d => d.rate) || []), currentPred?.predictedRate || 0],
-        color: (opacity = 1) => `rgba(4, 120, 87, ${opacity})`,
-        strokeWidth: 3
-      }
+        data: upperData,
+        color: () => "rgba(156,163,175,0.3)",
+        strokeWidth: 1,
+      },
+      {
+        data: lowerData,
+        color: () => "rgba(156,163,175,0.3)",
+        strokeWidth: 1,
+      },
+      {
+        data: mainData,
+        color: () => "rgba(4,120,87,1)",
+        strokeWidth: 3,
+      },
     ],
   };
 
   return (
     <View className="flex-1 bg-gray-50">
-      <ScreenHeader title="ML Predictions" subtitle="Resistance Trends (Next 6 Months)" />
+      <ScreenHeader
+        title="ML Predictions"
+        subtitle="Resistance Forecast Trends"
+      />
 
-      <ScrollView className="flex-1">
-        <View className="bg-emerald-900 px-4 py-6 mb-2">
-          <View className="flex-row items-center mb-1">
-            <TrendingUp size={20} color="#6EE7B7" className="mr-2" />
-            <Text className="text-emerald-100 font-bold uppercase tracking-wider text-xs">Model Version 2.1.0</Text>
-          </View>
-          <Text className="text-white font-medium text-lg leading-6 mt-1">
-            Predictive analysis of S. aureus resistance rates based on 4-year cumulative data.
-          </Text>
-          <View className="flex-row mt-4 gap-4">
-            <View className="bg-emerald-800 px-3 py-1.5 rounded-lg border border-emerald-700">
-              <Text className="text-emerald-200 text-xs">Accuracy</Text>
-              <Text className="text-white font-bold">92.4%</Text>
+      <View className="flex-1">
+        <ScrollView
+          className={`flex-1 ${isLoading ? "opacity-40" : "opacity-100"}`}
+          scrollEnabled={!isLoading}
+        >
+          {/* HEADER */}
+          <View className="bg-emerald-900 px-4 py-6 mb-2">
+            <View className="flex-row items-center mb-1">
+              <TrendingUp size={20} color="#6EE7B7" />
+              <Text className="text-emerald-100 font-bold ml-2 text-xs">
+                Model v2.0.0
+              </Text>
             </View>
-            <View className="bg-emerald-800 px-3 py-1.5 rounded-lg border border-emerald-700">
-              <Text className="text-emerald-200 text-xs">AUC-ROC</Text>
-              <Text className="text-white font-bold">0.89</Text>
-            </View>
-          </View>
-        </View>
 
-        <View className="px-4 py-4">
-          <Text className="text-gray-700 font-bold mb-3 text-base">Select Antibiotic</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-6 flex-row gap-2">
-            {predictions.map(p => (
-              <TouchableOpacity
-                key={p.antibiotic}
-                onPress={() => setSelectedAb(p.antibiotic)}
-                className={`mr-2 px-4 py-2 rounded-full border ${selectedAb === p.antibiotic ? 'bg-emerald-100 border-emerald-500' : 'bg-white border-gray-300'}`}
-              >
-                <Text className={selectedAb === p.antibiotic ? 'text-emerald-800 font-bold' : 'text-gray-600'}>
-                  {p.antibiotic}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-
-          {currentPred && (
-            <View className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-6">
-              <Text className="text-xl font-bold text-gray-900 mb-4">{currentPred.antibiotic} Trend</Text>
-              
-              <View className="items-center mr-4">
-                <LineChart
-                  data={chartData}
-                  width={Dimensions.get('window').width - 64}
-                  height={220}
-                  yAxisSuffix="%"
-                  chartConfig={{
-                    backgroundColor: '#ffffff',
-                    backgroundGradientFrom: '#ffffff',
-                    backgroundGradientTo: '#ffffff',
-                    decimalPlaces: 0,
-                    color: (opacity = 1) => `rgba(4, 120, 87, ${opacity})`,
-                    labelColor: (opacity = 1) => `rgba(107, 114, 128, ${opacity})`,
-                    style: { borderRadius: 16 },
-                    propsForDots: { r: '4', strokeWidth: '2', stroke: '#047857' }
-                  }}
-                  bezier
-                  style={{ marginVertical: 8, borderRadius: 16 }}
-                />
-              </View>
-
-              <View className="flex-row mt-6 pt-4 border-t border-gray-100 gap-4">
-                <View className="flex-1">
-                  <Text className="text-gray-500 text-xs mb-1 uppercase font-medium tracking-wider">Current Rate</Text>
-                  <Text className="text-gray-900 text-2xl font-bold">{currentPred.currentRate}%</Text>
-                </View>
-                <View className="w-px bg-gray-200" />
-                <View className="flex-1">
-                  <Text className="text-gray-500 text-xs mb-1 uppercase font-medium tracking-wider">Predicted Rate</Text>
-                  <View className="flex-row items-end">
-                    <Text className={`text-2xl font-bold ${currentPred.delta > 0 ? 'text-red-600' : 'text-emerald-600'}`}>
-                      {currentPred.predictedRate}%
-                    </Text>
-                    <Text className={`ml-2 mb-1 font-bold ${currentPred.delta > 0 ? 'text-red-500' : 'text-emerald-500'}`}>
-                      {currentPred.delta > 0 ? '↗' : '↘'} {Math.abs(currentPred.delta)}%
-                    </Text>
-                  </View>
-                </View>
-              </View>
-            </View>
-          )}
-
-          <View className="bg-gray-100 p-4 rounded-xl flex-row mb-6 mt-2">
-            <Info size={20} color="#6B7280" className="mr-3 mt-0.5" />
-            <Text className="text-gray-600 text-sm flex-1 leading-5">
-              Disclaimer: Machine learning predictions are illustrative and should support, not replace, clinical judgement.
+            <Text className="text-white text-lg mt-2">
+              Hybrid XGBoost + LSTM prediction model
             </Text>
-          </View>
-        </View>
-      </ScrollView>
 
-      
+            <View className="flex-row mt-4 gap-4">
+              <View className="bg-emerald-800 px-3 py-2 rounded-lg">
+                <Text className="text-emerald-200 text-xs">Accuracy</Text>
+                <Text className="text-white font-bold">
+                  {currentPred.accuracy?.toFixed(1)}%
+                </Text>
+              </View>
+
+              <View className="bg-emerald-800 px-3 py-2 rounded-lg">
+                <Text className="text-emerald-200 text-xs">Forecast</Text>
+                <Text className="text-white font-bold">
+                  {forecastYears} yrs
+                </Text>
+              </View>
+            </View>
+          </View>
+
+          {/* ANTIBIOTIC SELECTOR */}
+          <View className="px-4 py-4">
+            <Text className="font-bold mb-3">Select Antibiotic</Text>
+
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              {predictions.map((p) => (
+                <TouchableOpacity
+                  key={p.antibiotic}
+                  onPress={() => setSelectedAb(p.antibiotic)}
+                  className={`mr-2 px-4 py-2 rounded-full border ${
+                    currentPred.antibiotic === p.antibiotic
+                      ? "bg-emerald-100 border-emerald-500"
+                      : "bg-white border-gray-300"
+                  }`}
+                >
+                  <Text>{p.antibiotic}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+
+            {/* YEARS SELECTOR */}
+            <View className="mt-4">
+              <Text className="font-bold mb-2">Forecast Horizon</Text>
+
+              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((y) => (
+                  <TouchableOpacity
+                    key={y}
+                    onPress={() => setForecastYears(y)}
+                    className={`mr-2 px-4 py-2 rounded-full border ${
+                      forecastYears === y
+                        ? "bg-emerald-100 border-emerald-500"
+                        : "bg-white border-gray-300"
+                    }`}
+                  >
+                    <Text>{y} yr</Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+
+            {/* CHART */}
+            <View className="bg-white rounded-2xl p-4 mt-6">
+              <Text className="text-lg font-bold mb-4">
+                {currentPred.antibiotic} Trend
+              </Text>
+
+              <LineChart
+                data={chartData}
+                width={Dimensions.get("window").width - 40}
+                height={240}
+                yAxisSuffix="%"
+                chartConfig={{
+                  backgroundColor: "#fff",
+                  backgroundGradientFrom: "#fff",
+                  backgroundGradientTo: "#fff",
+                  decimalPlaces: 0,
+                  color: () => "rgba(4,120,87,1)",
+                  labelColor: () => "#6B7280",
+                }}
+                bezier
+              />
+            </View>
+
+            {/* STATS */}
+            <View className="flex-row mt-6 gap-4">
+              <View className="flex-1">
+                <Text className="text-gray-500 text-xs">Current</Text>
+                <Text className="text-xl font-bold">
+                  {currentPred.currentRate}%
+                </Text>
+              </View>
+
+              <View className="flex-1">
+                <Text className="text-gray-500 text-xs">Predicted</Text>
+                <Text className="text-xl font-bold">
+                  {currentPred.predictedRate}%
+                </Text>
+              </View>
+
+              <View className="flex-1">
+                <Text className="text-gray-500 text-xs">Trend</Text>
+                <Text
+                  className={`text-xl font-bold ${
+                    currentPred.delta > 0 ? "text-red-600" : "text-emerald-600"
+                  }`}
+                >
+                  {currentPred.delta > 0 ? "↑" : "↓"}{" "}
+                  {Math.abs(currentPred.delta)}%
+                </Text>
+              </View>
+            </View>
+
+            {/* DISCLAIMER */}
+            <View className="bg-gray-100 p-4 rounded-xl flex-row mt-6">
+              <Info size={18} color="#6B7280" />
+              <Text className="text-gray-600 text-sm ml-2">
+                Predictions support—not replace—clinical decisions.
+              </Text>
+            </View>
+          </View>
+        </ScrollView>
+
+        {/* 🔥 OVERLAY LOADER (NO FLICKER) */}
+        {isLoading && (
+          <View className="absolute inset-0 bg-black/10 flex items-center justify-center">
+            <ActivityIndicator size="large" color="#047857" />
+          </View>
+        )}
+      </View>
     </View>
   );
 }
