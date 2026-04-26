@@ -211,7 +211,7 @@ export async function getReports(): Promise<Report[]> {
       sampleId: "SMP-1004",
       specimenType: "Wound Swab",
       patientDemographics: "Senior Female",
-      organism: "Escherichia coli",
+      organism: "Staphylococcus aureus",
       isMRSA: false,
       astResults: mockAstResults2,
       localContext: "Community acquired",
@@ -223,7 +223,11 @@ export async function getReports(): Promise<Report[]> {
 
 export async function getReport(reportId: string): Promise<Report> {
   const reports = await getReports();
-  return reports[0];
+  const report = reports.find((r) => r.id === reportId);
+  if (!report) {
+    throw new Error(`Report with ID ${reportId} not found`);
+  }
+  return report;
 }
 export async function getPredictions(years: number = 5): Promise<any[]> {
   try {

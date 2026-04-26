@@ -35,8 +35,8 @@ export default function ClinicianLayout() {
         tabBarStyle: {
           backgroundColor: "#ffffff",
           borderTopColor: "#e5e7eb",
-          paddingBottom: 20,
-          paddingTop: 10,
+          paddingBottom: 10,
+          paddingTop: 5,
         },
         tabBarLabelStyle: {
           fontSize: 10,
@@ -75,8 +75,7 @@ export default function ClinicianLayout() {
       <Tabs.Screen
         name="report-view"
         options={{
-          title: "Report-view",
-          tabBarIcon: ({ color }) => <FileText size={20} color={color} />,
+          href: null,
         }}
       />
     </Tabs>

@@ -1,13 +1,16 @@
+import { Stack } from "expo-router";
+import { StatusBar } from "expo-status-bar";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { AuthProvider } from "../context/AuthContext";
 import "../global.css";
-import { Stack } from 'expo-router';
-import { AuthProvider } from '../context/AuthContext';
-import { StatusBar } from 'expo-status-bar';
 
 export default function RootLayout() {
   return (
     <AuthProvider>
-      <StatusBar style="dark" />
-      <Stack screenOptions={{ headerShown: false }} />
+      <SafeAreaView style={{ flex: 1, backgroundColor: "#ffffff" }}>
+        <StatusBar style="dark" />
+        <Stack screenOptions={{ headerShown: false }} />
+      </SafeAreaView>
     </AuthProvider>
   );
 }
