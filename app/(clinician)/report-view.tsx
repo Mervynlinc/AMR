@@ -1,13 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Download } from 'lucide-react-native';
-import ScreenHeader from '../../components/layout/ScreenHeader';
-
-import { getSamples, createSample, saveAST, getReports, getReport, getPredictions } from '../../services/api';
+import { Download, ChevronLeft, Bug } from 'lucide-react-native';
+import { getReport } from '../../services/api';
 import { Report } from '../../types';
-import Badge from '../../components/ui/Badge';
-import ASTCard from '../../components/ui/ASTCard';
 
 export default function ClinicianReportView() {
   const { reportId } = useLocalSearchParams<{ reportId: string }>();
@@ -33,9 +29,20 @@ export default function ClinicianReportView() {
   if (isLoading) {
     return (
       <View className="flex-1 bg-gray-50">
-        <ScreenHeader title="Report Details" showBack onBack={() => router.back()} />
+        <View className="flex-row items-center justify-between px-4 py-3 bg-white">
+          <TouchableOpacity onPress={() => router.back()} className="p-1">
+            <ChevronLeft size={24} color="#111827" />
+          </TouchableOpacity>
+          <View className="flex-1 items-center">
+            <Text className="text-lg font-bold text-gray-900">Lab Report</Text>
+            <Text className="text-xs text-gray-500 mt-0.5">Loading...</Text>
+          </View>
+          <TouchableOpacity className="p-1">
+            <Download size={22} color="#111827" />
+          </TouchableOpacity>
+        </View>
         <View className="flex-1 justify-center items-center">
-          <ActivityIndicator size="large" color="#047857" />
+          <ActivityIndicator size="large" color="#2BB5A0" />
         </View>
       </View>
     );
@@ -44,9 +51,20 @@ export default function ClinicianReportView() {
   if (!report) {
     return (
       <View className="flex-1 bg-gray-50">
-        <ScreenHeader title="Error" showBack onBack={() => router.back()} />
+        <View className="flex-row items-center justify-between px-4 py-3 bg-white">
+          <TouchableOpacity onPress={() => router.back()} className="p-1">
+            <ChevronLeft size={24} color="#111827" />
+          </TouchableOpacity>
+          <View className="flex-1 items-center">
+            <Text className="text-lg font-bold text-gray-900">Lab Report</Text>
+            <Text className="text-xs text-gray-500 mt-0.5">Error</Text>
+          </View>
+          <TouchableOpacity className="p-1">
+            <Download size={22} color="#111827" />
+          </TouchableOpacity>
+        </View>
         <View className="flex-1 justify-center items-center">
-          <Text>Report not found.</Text>
+          <Text className="text-base text-gray-500">Report not found.</Text>
         </View>
       </View>
     );
@@ -54,48 +72,102 @@ export default function ClinicianReportView() {
 
   return (
     <View className="flex-1 bg-gray-50">
-      <View className="bg-emerald-700 pt-12 pb-4 px-4 flex-row items-center justify-between pt-safe">
+      <View className="flex-row items-center justify-between px-4 py-3 bg-white">
         <TouchableOpacity onPress={() => router.back()} className="p-1">
-          <Text className="text-white font-medium pl-1">Back</Text>
+          <ChevronLeft size={24} color="#111827" />
         </TouchableOpacity>
-        <Text className="text-white text-xl font-bold flex-1 text-center mr-4">{report.id}</Text>
+        <View className="flex-1 items-center">
+          <Text className="text-lg font-bold text-gray-900">Lab Report</Text>
+          <Text className="text-xs text-gray-500 mt-0.5">{report.id} | FINAL</Text>
+        </View>
         <TouchableOpacity className="p-1">
-          <Download size={22} color="#fff" />
+          <Download size={22} color="#111827" />
         </TouchableOpacity>
       </View>
 
-      <ScrollView className="flex-1 px-4 pt-4">
-        <View className="bg-gray-900 rounded-xl p-5 mb-4 shadow-sm">
-          <Text className="text-gray-400 text-xs font-medium uppercase tracking-wider mb-1">Organism Identified</Text>
-          <Text className="text-white text-xl font-bold italic mb-3">{report.organism}</Text>
-          <View className="flex-row justify-between items-center border-t border-gray-700 pt-3">
-            <Badge label={report.isMRSA ? "MRSA" : "MSSA"} variant={report.isMRSA ? "danger" : "warning"} />
-            <Text className="text-gray-300 text-sm font-medium">{report.specimenType}</Text>
+      <ScrollView className="flex-1 px-4 pt-4 pb-6" showsVerticalScrollIndicator={false}>
+        <View className="bg-[#1A2340] rounded-xl p-5 mb-4 relative">
+          <Text className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-2">MUST Microbiology Laboratory</Text>
+          <Text className="text-xl font-bold text-white mb-3">{report.organism} Susceptibility Report</Text>
+          <View className="absolute top-5 right-5 bg-green-600 px-3 py-1 rounded-full">
+            <Text className="text-xs font-semibold text-white">FINAL</Text>
+          </View>
+          <View className="flex-row justify-between mt-3">
+            <View className="flex-1">
+              <Text className="text-xs text-gray-400 mb-1">Report #:</Text>
+              <Text className="text-sm font-medium text-white">{report.id}</Text>
+            </View>
+            <View className="flex-1">
+              <Text className="text-xs text-gray-400 mb-1">Date:</Text>
+              <Text className="text-sm font-medium text-white">{report.date}</Text>
+            </View>
+          </View>
+          <View className="flex-row justify-between mt-3">
+            <View className="flex-1">
+              <Text className="text-xs text-gray-400 mb-1">Specimen:</Text>
+              <Text className="text-sm font-medium text-white">{report.specimenType}</Text>
+            </View>
+            <View className="flex-1">
+              <Text className="text-xs text-gray-400 mb-1">Patient:</Text>
+              <Text className="text-sm font-medium text-white">{report.patientDemographics}</Text>
+            </View>
           </View>
         </View>
 
-        <Text className="text-gray-800 font-bold text-lg mb-3 mt-2">Susceptibility Results</Text>
-        {report.astResults.length > 0 ? (
-          report.astResults.map((ast, idx) => (
-            <ASTCard key={idx} entry={ast} />
-          ))
-        ) : (
-          <Text className="text-gray-500 italic mb-4">No specific AST record mapping available for this mock.</Text>
-        )}
-
-        <View className="bg-blue-50 border border-blue-200 rounded-xl p-4 mt-4 mb-4">
-          <Text className="text-blue-900 font-bold mb-1">Local Context</Text>
-          <Text className="text-blue-800 text-sm leading-5">{report.localContext}</Text>
+        <View className="bg-white rounded-xl p-4 mb-4 shadow-sm">
+          <Text className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">ORGANISM IDENTIFIED</Text>
+          <View className="flex-row items-center mb-3">
+            <View className="w-11 h-11 rounded-full bg-red-100 justify-center items-center mr-3">
+              <Bug size={28} color="#E53935" />
+            </View>
+            <View className="flex-1">
+              <Text className="text-lg font-bold text-gray-900 mb-1">{report.organism}</Text>
+              <Text className="text-sm text-gray-500">Gram-Positive Cocci | MALDI-TOF</Text>
+            </View>
+          </View>
+          <View className="bg-[#FDECEA] px-3 py-1.5 rounded-lg self-start">
+            <Text className="text-xs font-semibold text-pink-700">
+              {report.isMRSA ? 'Methicillin-Resistant (MRSA)' : 'Methicillin-Susceptible (MSSA)'}
+            </Text>
+          </View>
         </View>
 
-        <View className="mt-4 border-t border-gray-200 pt-4 mb-8">
-          <Text className="text-gray-500 text-xs font-medium uppercase tracking-wider">Authorised By</Text>
-          <Text className="text-gray-900 font-bold mt-1 text-base">{report.authorisedBy}</Text>
-          <Text className="text-gray-400 mt-1 text-xs">Report Date: {report.date}</Text>
+        <View className="bg-white rounded-xl p-4 mb-4 shadow-sm">
+          <Text className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">ANTIMICROBIAL SUSCEPTIBILITY ({report.astResults.length} ANTIBIOTICS)</Text>
+          <Text className="text-xs text-gray-400 mb-2">Disc Diffusion | CLSI Guidelines</Text>
+          <View className="h-px bg-gray-200 mb-3" />
+          
+          {report.astResults.map((ast, idx) => {
+            const bgColor = ast.result === 'R' ? '#FDECEA' : '#FFFFFF';
+            const badgeColor = ast.result === 'R' ? '#E53935' : ast.result === 'I' ? '#FB8C00' : '#43A047';
+            
+            return (
+              <View key={idx} className="flex-row items-center justify-between py-3 px-2 rounded-lg mb-1" style={{ backgroundColor: bgColor }}>
+                <View className="flex-1">
+                  <Text className="text-sm font-medium text-gray-900">{ast.antibiotic}</Text>
+                  <Text className="text-xs text-gray-500 mt-0.5">({ast.abbreviation})</Text>
+                </View>
+                <Text className="text-sm font-medium text-gray-500 mr-3">{ast.zoneDiameter}mm</Text>
+                <View className="w-7 h-7 rounded-full justify-center items-center" style={{ backgroundColor: badgeColor }}>
+                  <Text className="text-xs font-bold text-white">{ast.result}</Text>
+                </View>
+              </View>
+            );
+          })}
+          
+          <Text className="text-xs text-gray-400 italic mt-2 text-center">+ {Math.max(0, report.astResults.length - 6)} more antibiotics tested (scroll full report to view)</Text>
+        </View>
+
+        <View className="bg-gray-100 rounded-xl p-4 mb-4">
+          <Text className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">LOCAL {report.organism.toUpperCase()} RESISTANCE CONTEXT</Text>
+          <Text className="text-sm text-gray-700 leading-5">{report.localContext}</Text>
+        </View>
+
+        <View className="mt-2 mb-4">
+          <View className="h-px bg-gray-200 mb-3" />
+          <Text className="text-xs text-gray-400 text-center">Authorized by: {report.authorisedBy} | {report.date}</Text>
         </View>
       </ScrollView>
-
-      
     </View>
   );
 }

@@ -211,7 +211,7 @@ export async function getReports(): Promise<Report[]> {
       sampleId: "SMP-1004",
       specimenType: "Wound Swab",
       patientDemographics: "Senior Female",
-      organism: "Escherichia coli",
+      organism: "Staphylococcus aureus",
       isMRSA: false,
       astResults: mockAstResults2,
       localContext: "Community acquired",
@@ -223,21 +223,24 @@ export async function getReports(): Promise<Report[]> {
 
 export async function getReport(reportId: string): Promise<Report> {
   const reports = await getReports();
-  return reports[0];
+  const report = reports.find((r) => r.id === reportId);
+  if (!report) {
+    throw new Error(`Report with ID ${reportId} not found`);
+  }
+  return report;
 }
 export async function getPredictions(years: number = 5): Promise<any[]> {
   try {
-    const BASE_URL =
-      process.env.EXPO_PUBLIC_AMR_API_BASE_URL ?? "http://10.246.63.121:8000";
+    const BASE_URL = "http://10.246.63.121:8000";
 
     const res = await fetch(`${BASE_URL}/antibiotics`);
     const data = await res.json();
-
     const antibiotics: string[] = data.antibiotics;
 
     const results = await Promise.all(
       antibiotics.map(async (ab) => {
-        const r = await fetch(`${BASE_URL}/forecast/${ab}?years=${years}`);
+        // 🔥 CHANGED: 'years=' to 'steps=' to match your backend
+        const r = await fetch(`${BASE_URL}/forecast/${ab}?steps=${years}`);
         return await r.json();
       }),
     );

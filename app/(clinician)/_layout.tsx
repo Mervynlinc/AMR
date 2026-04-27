@@ -2,11 +2,16 @@ import { Tabs, useRouter } from "expo-router";
 import { BarChart3, Brain, FileText, Home } from "lucide-react-native";
 import { useEffect } from "react";
 import { ActivityIndicator } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
+
 import { useAuthContext } from "../../context/AuthContext";
 
 export default function ClinicianLayout() {
   const { role, isLoading } = useAuthContext();
+  const insets = useSafeAreaInsets();
   const router = useRouter();
 
   // --- Auth guard logic ---
@@ -35,8 +40,8 @@ export default function ClinicianLayout() {
         tabBarStyle: {
           backgroundColor: "#ffffff",
           borderTopColor: "#e5e7eb",
-          paddingBottom: 20,
-          paddingTop: 10,
+          paddingBottom: 10,
+          paddingTop: 5,
         },
         tabBarLabelStyle: {
           fontSize: 10,
@@ -75,8 +80,7 @@ export default function ClinicianLayout() {
       <Tabs.Screen
         name="report-view"
         options={{
-          title: "Report-view",
-          tabBarIcon: ({ color }) => <FileText size={20} color={color} />,
+          href: null,
         }}
       />
     </Tabs>
