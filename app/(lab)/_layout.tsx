@@ -35,7 +35,7 @@ export default function LabLayout() {
         tabBarStyle: {
           backgroundColor: "#ffffff",
           borderTopColor: "#e5e7eb",
-          paddingBottom: 20,
+          paddingBottom: 10,
           paddingTop: 10,
         },
         tabBarLabelStyle: {
@@ -77,6 +77,18 @@ export default function LabLayout() {
         options={{
           title: "Profile",
           tabBarIcon: ({ color }) => <User size={20} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="ast"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="isolate"
+        options={{
+          href: null,
         }}
       />
     </Tabs>
