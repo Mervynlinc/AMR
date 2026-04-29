@@ -231,7 +231,7 @@ export async function getReport(reportId: string): Promise<Report> {
 }
 export async function getPredictions(years: number = 5): Promise<any[]> {
   try {
-    const BASE_URL = "http://10.246.63.121:8000";
+    const BASE_URL = "https://amr-backend-hjgp.onrender.com";
 
     const res = await fetch(`${BASE_URL}/antibiotics`);
     const data = await res.json();
