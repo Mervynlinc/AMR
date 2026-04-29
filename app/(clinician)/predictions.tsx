@@ -34,7 +34,7 @@ export default function ClinicianPredictions() {
   const mainData = currentPred.historicalData.map((d) => d.rate);
   const upperData = currentPred.historicalData.map((d) => d.upper);
   const lowerData = currentPred.historicalData.map((d) => d.lower);
-
+  const currentYear = new Date().getFullYear();
   const chartData = {
     labels,
     datasets: [
@@ -201,7 +201,9 @@ export default function ClinicianPredictions() {
 
             <View className="flex-row mt-6 gap-4">
               <View className="flex-1">
-                <Text className="text-gray-500 text-xs">Current</Text>
+                <Text className="text-gray-500 text-xs">
+                  Current({currentYear})
+                </Text>
                 <Text className="text-xl font-bold">
                   {currentPred.currentRate}%
                 </Text>
