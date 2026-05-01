@@ -11,7 +11,6 @@ export default function LabIsolate() {
   const { updateSample } = useAMRStore();
 
   const [growth, setGrowth] = useState<boolean | null>(true);
-  const [method, setMethod] = useState('VITEK 2');
 
   const handleConfirm = () => {
     if (!sampleId) return;
@@ -56,30 +55,15 @@ export default function LabIsolate() {
 
           {growth && (
             <>
-              <View className="mb-6">
-                <Text className="text-gray-700 font-medium mb-1">Organism</Text>
-                <View className="bg-gray-100 border border-gray-200 rounded-lg px-4 py-3">
-                  <Text className="text-gray-800 font-bold italic">Staphylococcus aureus</Text>
-                  <Text className="text-gray-500 text-xs mt-1">(Locked based on workflow)</Text>
-                </View>
-              </View>
-
-              <Text className="text-gray-700 font-medium mb-3">Identification Method</Text>
-              <View className="flex-row flex-wrap gap-2">
-                {['VITEK 2', 'MALDI-TOF', 'BD Phoenix', 'Manual'].map(opt => (
-                  <TouchableOpacity 
-                    key={opt}
-                    onPress={() => setMethod(opt)}
-                    className={`px-4 py-2 rounded-lg border ${method === opt ? 'bg-emerald-100 border-emerald-500' : 'bg-white border-gray-200'}`}
-                  >
-                    <Text className={`${method === opt ? 'text-emerald-800 font-medium' : 'text-gray-600'}`}>
-                      {opt}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </>
-          )}
+               <View className="mb-6">
+                 <Text className="text-gray-700 font-medium mb-1">Organism</Text>
+                 <View className="bg-gray-100 border border-gray-200 rounded-lg px-4 py-3">
+                   <Text className="text-gray-800 font-bold italic">Staphylococcus aureus</Text>
+                   <Text className="text-gray-500 text-xs mt-1">(Locked based on workflow)</Text>
+                 </View>
+               </View>
+             </>
+           )}
         </View>
 
         <TouchableOpacity 

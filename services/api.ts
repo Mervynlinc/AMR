@@ -119,37 +119,31 @@ export async function getReports(): Promise<Report[]> {
     {
       antibiotic: "Penicillin",
       abbreviation: "PEN",
-      zoneDiameter: 12,
       result: "R",
     },
     {
       antibiotic: "Cefoxitin",
       abbreviation: "FOX",
-      zoneDiameter: 18,
       result: "R",
     },
     {
       antibiotic: "Erythromycin",
       abbreviation: "ERY",
-      zoneDiameter: 14,
       result: "I",
     },
     {
       antibiotic: "Clindamycin",
       abbreviation: "CLI",
-      zoneDiameter: 22,
       result: "S",
     },
     {
       antibiotic: "Vancomycin",
       abbreviation: "VAN",
-      zoneDiameter: 17,
       result: "S",
     },
     {
       antibiotic: "Linezolid",
       abbreviation: "LNZ",
-      zoneDiameter: 25,
       result: "S",
     },
   ];
@@ -158,37 +152,31 @@ export async function getReports(): Promise<Report[]> {
     {
       antibiotic: "Ampicillin",
       abbreviation: "AMP",
-      zoneDiameter: 20,
       result: "S",
     },
     {
       antibiotic: "Amoxicillin-Clavulanate",
       abbreviation: "AMC",
-      zoneDiameter: 22,
       result: "S",
     },
     {
       antibiotic: "Ceftriaxone",
       abbreviation: "CRO",
-      zoneDiameter: 25,
       result: "S",
     },
     {
       antibiotic: "Ciprofloxacin",
       abbreviation: "CIP",
-      zoneDiameter: 15,
       result: "I",
     },
     {
       antibiotic: "Gentamicin",
       abbreviation: "GEN",
-      zoneDiameter: 18,
       result: "S",
     },
     {
       antibiotic: "Trimethoprim-Sulfamethoxazole",
       abbreviation: "SXT",
-      zoneDiameter: 26,
       result: "S",
     },
   ];
@@ -231,7 +219,7 @@ export async function getReport(reportId: string): Promise<Report> {
 }
 export async function getPredictions(years: number = 5): Promise<any[]> {
   try {
-    const BASE_URL = "http://10.246.63.121:8000";
+    const BASE_URL = "https://amr-backend-hjgp.onrender.com";
 
     const res = await fetch(`${BASE_URL}/antibiotics`);
     const data = await res.json();

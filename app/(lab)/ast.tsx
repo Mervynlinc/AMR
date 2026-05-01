@@ -23,8 +23,8 @@ export default function LabAST() {
   const { updateSample } = useAMRStore();
   
   const [method, setMethod] = useState('Disk Diffusion');
-  const [results, setResults] = useState<Record<string, { zone: string; result: ASTResult | null }>>(
-    Object.fromEntries(INITIAL_ANTIBIOTICS.map(a => [a.name, { zone: '', result: null }]))
+  const [results, setResults] = useState<Record<string, { result: ASTResult | null }>>(
+    Object.fromEntries(INITIAL_ANTIBIOTICS.map(a => [a.name, { result: null }]))
   );
 
   const isMDR = useMemo(() => {
@@ -40,14 +40,7 @@ export default function LabAST() {
   const handleResultChange = (antibiotic: string, result: ASTResult) => {
     setResults(prev => ({
       ...prev,
-      [antibiotic]: { ...prev[antibiotic], result }
-    }));
-  };
-
-  const handleZoneChange = (antibiotic: string, zone: string) => {
-    setResults(prev => ({
-      ...prev,
-      [antibiotic]: { ...prev[antibiotic], zone: zone.replace(/[^0-9]/g, '') }
+      [antibiotic]: { result }
     }));
   };
 
@@ -57,7 +50,6 @@ export default function LabAST() {
     const formattedResults: ASTEntry[] = INITIAL_ANTIBIOTICS.map(ab => ({
       antibiotic: ab.name,
       abbreviation: ab.abbr,
-      zoneDiameter: results[ab.name].zone ? parseInt(results[ab.name].zone, 10) : null,
       result: results[ab.name].result,
     }));
 
@@ -91,40 +83,20 @@ export default function LabAST() {
       <ScrollView className="flex-1 px-4 pt-4 bg-gray-50" contentContainerStyle={{ paddingBottom: 40}}>
         <View className="mb-4">
           <Text className="text-gray-700 font-medium mb-2">Test Method</Text>
-          <View className="flex-row flex-wrap gap-2">
-            {['Disk Diffusion', 'MIC / Broth', 'E-test'].map(opt => (
-              <TouchableOpacity 
-                key={opt}
-                onPress={() => setMethod(opt)}
-                className={`px-4 py-2 rounded-lg border ${method === opt ? 'bg-emerald-100 border-emerald-500' : 'bg-white border-gray-200'}`}
-              >
-                <Text className={`${method === opt ? 'text-emerald-800 font-medium' : 'text-gray-600'}`}>{opt}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
+          <TextInput
+            value={method}
+            onChangeText={setMethod}
+            className="bg-white border border-gray-200 rounded-lg px-4 py-3 text-gray-900"
+          />
         </View>
 
         <Text className="text-gray-900 font-bold text-lg mb-2 mt-2">Antibiotics Panel</Text>
         
         {INITIAL_ANTIBIOTICS.map((ab) => (
           <View key={ab.name} className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-3">
-            <View className="flex-row justify-between mb-3 border-b border-gray-100 pb-2">
-              <View className="flex-1 mr-2">
-                <Text className="font-bold text-gray-900 text-base flex-wrap shrink-1">{ab.name}</Text>
-                <Text className="text-gray-400 text-xs">{ab.abbr} • {ab.class}</Text>
-              </View>
-              {method !== 'MIC / Broth' && (
-                <View className="flex-row items-center">
-                  <Text className="text-gray-500 mr-2 text-xs font-medium">Zone(mm)</Text>
-                  <TextInput
-                    className="border border-gray-200 rounded p-2 text-center w-12 h-10 bg-gray-50"
-                    keyboardType="numeric"
-                    maxLength={3}
-                    value={results[ab.name].zone}
-                    onChangeText={(val) => handleZoneChange(ab.name, val)}
-                  />
-                </View>
-              )}
+            <View className="mb-3 border-b border-gray-100 pb-2">
+              <Text className="font-bold text-gray-900 text-base">{ab.name}</Text>
+              <Text className="text-gray-400 text-xs">{ab.abbr} • {ab.class}</Text>
             </View>
             <View className="flex-row gap-2">
               <TouchableOpacity 

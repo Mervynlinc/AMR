@@ -97,6 +97,17 @@ export default function LabHome() {
             No completed samples today.
           </Text>
         )}
+        {!isLoading && completedSamples.length > 0 && (
+          completedSamples.map((sample) => (
+            <SampleCard
+              key={sample.id}
+              sample={sample}
+              onPress={() => {
+                router.push(`/(lab)/report-view?sampleId=${sample.id}`);
+              }}
+            />
+          ))
+        )}
       </ScrollView>
 
       
