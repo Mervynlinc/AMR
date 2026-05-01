@@ -67,6 +67,8 @@ export default function LabSamples() {
                   router.push(`/(lab)/isolate?sampleId=${sample.id}`);
                 } else if (sample.status === 'pending_ast') {
                   router.push(`/(lab)/ast?sampleId=${sample.id}`);
+                } else if (sample.status === 'complete') {
+                  router.push(`/(lab)/report-view?sampleId=${sample.id}`);
                 }
               }}
             />

@@ -13,7 +13,6 @@ export type ASTResult = "S" | "I" | "R";
 export interface ASTEntry {
   antibiotic: string;
   abbreviation: string;
-  zoneDiameter: number | null;
   result: ASTResult | null;
 }
 
