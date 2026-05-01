@@ -119,37 +119,31 @@ export async function getReports(): Promise<Report[]> {
     {
       antibiotic: "Penicillin",
       abbreviation: "PEN",
-      zoneDiameter: 12,
       result: "R",
     },
     {
       antibiotic: "Cefoxitin",
       abbreviation: "FOX",
-      zoneDiameter: 18,
       result: "R",
     },
     {
       antibiotic: "Erythromycin",
       abbreviation: "ERY",
-      zoneDiameter: 14,
       result: "I",
     },
     {
       antibiotic: "Clindamycin",
       abbreviation: "CLI",
-      zoneDiameter: 22,
       result: "S",
     },
     {
       antibiotic: "Vancomycin",
       abbreviation: "VAN",
-      zoneDiameter: 17,
       result: "S",
     },
     {
       antibiotic: "Linezolid",
       abbreviation: "LNZ",
-      zoneDiameter: 25,
       result: "S",
     },
   ];
@@ -158,37 +152,31 @@ export async function getReports(): Promise<Report[]> {
     {
       antibiotic: "Ampicillin",
       abbreviation: "AMP",
-      zoneDiameter: 20,
       result: "S",
     },
     {
       antibiotic: "Amoxicillin-Clavulanate",
       abbreviation: "AMC",
-      zoneDiameter: 22,
       result: "S",
     },
     {
       antibiotic: "Ceftriaxone",
       abbreviation: "CRO",
-      zoneDiameter: 25,
       result: "S",
     },
     {
       antibiotic: "Ciprofloxacin",
       abbreviation: "CIP",
-      zoneDiameter: 15,
       result: "I",
     },
     {
       antibiotic: "Gentamicin",
       abbreviation: "GEN",
-      zoneDiameter: 18,
       result: "S",
     },
     {
       antibiotic: "Trimethoprim-Sulfamethoxazole",
       abbreviation: "SXT",
-      zoneDiameter: 26,
       result: "S",
     },
   ];

@@ -23,14 +23,12 @@ export default function NewSample() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [formData, setFormData] = useState({
-    facility: "Central Lab",
     specimenType: "Blood",
     collectionDate: new Date().toISOString().split("T")[0],
     receivedDate: new Date().toISOString().split("T")[0],
     ageGroup: "Adult",
     sex: "M",
     patientType: "Inpatient",
-    ward: "",
   });
 
   const handleSave = async () => {
@@ -94,11 +92,6 @@ export default function NewSample() {
               />
             </View>
 
-            {renderPicker("Originating Facility", "facility", [
-              "Central Lab",
-              "General Hospital",
-              "Local Clinic",
-            ])}
             {renderPicker("Specimen Type", "specimenType", [
               "Blood",
               "Wound swab",
@@ -135,28 +128,15 @@ export default function NewSample() {
             </View>
 
             {renderPicker("Age Group", "ageGroup", [
-              "Neonatal",
               "Pediatric",
               "Adult",
               "Elderly",
             ])}
-            {renderPicker("Sex", "sex", ["M", "F", "Other"])}
+            {renderPicker("Sex", "sex", ["M", "F"])}
             {renderPicker("Patient Type", "patientType", [
               "Inpatient",
               "Outpatient",
             ])}
-
-            <View className="mb-4">
-              <Text className="text-gray-700 font-medium mb-1">Ward</Text>
-              <TextInput
-                placeholder="e.g. ICU"
-                value={formData.ward}
-                onChangeText={(text) =>
-                  setFormData({ ...formData, ward: text })
-                }
-                className="bg-white border border-gray-200 rounded-lg px-4 py-3 text-gray-900"
-              />
-            </View>
           </View>
 
           <TouchableOpacity
