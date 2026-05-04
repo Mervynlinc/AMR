@@ -1,9 +1,15 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Download, ChevronLeft, Bug } from 'lucide-react-native';
-import { getReport } from '../../services/api';
-import { Report } from '../../types';
+import React, { useEffect, useState } from "react";
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  ActivityIndicator,
+} from "react-native";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { Download, ChevronLeft, Bug } from "lucide-react-native";
+import { getReport } from "../../services/api";
+import { Report } from "../../types";
 
 export default function ClinicianReportView() {
   const { reportId } = useLocalSearchParams<{ reportId: string }>();
@@ -85,10 +91,17 @@ export default function ClinicianReportView() {
         </TouchableOpacity>
       </View>
 
-      <ScrollView className="flex-1 px-4 pt-4 pb-6" showsVerticalScrollIndicator={false}>
+      <ScrollView
+        className="flex-1 px-4 pt-4 pb-6"
+        showsVerticalScrollIndicator={false}
+      >
         <View className="bg-[#1A2340] rounded-xl p-5 mb-4 relative">
-          <Text className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-2">MUST Microbiology Laboratory</Text>
-          <Text className="text-xl font-bold text-white mb-3">{report.organism} Susceptibility Report</Text>
+          <Text className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-2">
+            MUST Microbiology Laboratory
+          </Text>
+          <Text className="text-xl font-bold text-white mb-3">
+            {report.organism} Susceptibility Report
+          </Text>
           <View className="absolute top-5 right-5 bg-green-600 px-3 py-1 rounded-full">
             <Text className="text-xs font-semibold text-white">FINAL</Text>
           </View>
@@ -99,72 +112,118 @@ export default function ClinicianReportView() {
             </View>
             <View className="flex-1">
               <Text className="text-xs text-gray-400 mb-1">Date:</Text>
-              <Text className="text-sm font-medium text-white">{report.date}</Text>
+              <Text className="text-sm font-medium text-white">
+                {report.date}
+              </Text>
             </View>
           </View>
           <View className="flex-row justify-between mt-3">
             <View className="flex-1">
               <Text className="text-xs text-gray-400 mb-1">Specimen:</Text>
-              <Text className="text-sm font-medium text-white">{report.specimenType}</Text>
+              <Text className="text-sm font-medium text-white">
+                {report.specimenType}
+              </Text>
             </View>
             <View className="flex-1">
               <Text className="text-xs text-gray-400 mb-1">Patient:</Text>
-              <Text className="text-sm font-medium text-white">{report.patientDemographics}</Text>
+              <Text className="text-sm font-medium text-white">
+                {report.patientDemographics}
+              </Text>
             </View>
           </View>
         </View>
 
         <View className="bg-white rounded-xl p-4 mb-4 shadow-sm">
-          <Text className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">ORGANISM IDENTIFIED</Text>
+          <Text className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
+            ORGANISM IDENTIFIED
+          </Text>
           <View className="flex-row items-center mb-3">
             <View className="w-11 h-11 rounded-full bg-red-100 justify-center items-center mr-3">
               <Bug size={28} color="#E53935" />
             </View>
             <View className="flex-1">
-              <Text className="text-lg font-bold text-gray-900 mb-1">{report.organism}</Text>
-              <Text className="text-sm text-gray-500">Gram-Positive Cocci | MALDI-TOF</Text>
+              <Text className="text-lg font-bold text-gray-900 mb-1">
+                {report.organism}
+              </Text>
+              <Text className="text-sm text-gray-500">
+                Gram-Positive Cocci | MALDI-TOF
+              </Text>
             </View>
           </View>
           <View className="bg-[#FDECEA] px-3 py-1.5 rounded-lg self-start">
             <Text className="text-xs font-semibold text-pink-700">
-              {report.isMRSA ? 'Methicillin-Resistant (MRSA)' : 'Methicillin-Susceptible (MSSA)'}
+              {report.isMRSA
+                ? "Methicillin-Resistant (MRSA)"
+                : "Methicillin-Susceptible (MSSA)"}
             </Text>
           </View>
         </View>
 
         <View className="bg-white rounded-xl p-4 mb-4 shadow-sm">
-          <Text className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">ANTIMICROBIAL SUSCEPTIBILITY ({report.astResults.length} ANTIBIOTICS)</Text>
-          <Text className="text-xs text-gray-400 mb-2">Disc Diffusion | CLSI Guidelines</Text>
+          <Text className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
+            ANTIMICROBIAL SUSCEPTIBILITY ({report.astResults.length}{" "}
+            ANTIBIOTICS)
+          </Text>
+          <Text className="text-xs text-gray-400 mb-2">
+            Disc Diffusion | CLSI Guidelines
+          </Text>
           <View className="h-px bg-gray-200 mb-3" />
-          
+
           {report.astResults.map((ast, idx) => {
-            const bgColor = ast.result === 'R' ? '#FDECEA' : '#FFFFFF';
-            const badgeColor = ast.result === 'R' ? '#E53935' : ast.result === 'I' ? '#FB8C00' : '#43A047';
-            
+            const bgColor = ast.result === "R" ? "#FDECEA" : "#FFFFFF";
+            const badgeColor =
+              ast.result === "R"
+                ? "#E53935"
+                : ast.result === "I"
+                  ? "#FB8C00"
+                  : "#43A047";
+
             return (
-               <View key={idx} className="flex-row items-center justify-between py-3 px-2 rounded-lg mb-1" style={{ backgroundColor: bgColor }}>
-                 <View className="flex-1">
-                   <Text className="text-sm font-medium text-gray-900">{ast.antibiotic}</Text>
-                   <Text className="text-xs text-gray-500 mt-0.5">({ast.abbreviation})</Text>
-                 </View>
-                 <View className="w-7 h-7 rounded-full justify-center items-center" style={{ backgroundColor: badgeColor }}>
-                   <Text className="text-xs font-bold text-white">{ast.result}</Text>
-                 </View>
-               </View>
+              <View
+                key={idx}
+                className="flex-row items-center justify-between py-3 px-2 rounded-lg mb-1"
+                style={{ backgroundColor: bgColor }}
+              >
+                <View className="flex-1">
+                  <Text className="text-sm font-medium text-gray-900">
+                    {ast.antibiotic}
+                  </Text>
+                  <Text className="text-xs text-gray-500 mt-0.5">
+                    ({ast.abbreviation})
+                  </Text>
+                </View>
+                <View
+                  className="w-7 h-7 rounded-full justify-center items-center"
+                  style={{ backgroundColor: badgeColor }}
+                >
+                  <Text className="text-xs font-bold text-white">
+                    {ast.result}
+                  </Text>
+                </View>
+              </View>
             );
           })}
-          
-          <Text className="text-xs text-gray-400 italic mt-2 text-center">+ {Math.max(0, report.astResults.length - 6)} more antibiotics tested (scroll full report to view)</Text>
+
+          <Text className="text-xs text-gray-400 italic mt-2 text-center">
+            + {Math.max(0, report.astResults.length - 6)} more antibiotics
+            tested (scroll full report to view)
+          </Text>
         </View>
 
         <View className="bg-gray-100 rounded-xl p-4 mb-4">
-          <Text className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">LOCAL {report.organism.toUpperCase()} RESISTANCE CONTEXT</Text>
-          <Text className="text-sm text-gray-700 leading-5">{report.localContext}</Text>
+          <Text className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
+            LOCAL {report.organism.toUpperCase()} RESISTANCE CONTEXT
+          </Text>
+          <Text className="text-sm text-gray-700 leading-5">
+            {report.localContext}
+          </Text>
         </View>
 
         <View className="mt-2 mb-4">
           <View className="h-px bg-gray-200 mb-3" />
-          <Text className="text-xs text-gray-400 text-center">Authorized by: {report.authorisedBy} | {report.date}</Text>
+          <Text className="text-xs text-gray-400 text-center">
+            Authorized by: {report.authorisedBy} | {report.date}
+          </Text>
         </View>
       </ScrollView>
     </View>

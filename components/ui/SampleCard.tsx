@@ -26,10 +26,10 @@ const SampleCard: React.FC<SampleCardProps> = ({ sample, onPress }) => {
   return (
     <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.7}>
       <View style={styles.row}>
-        <Text style={styles.id}>{sample.id}</Text>
+        <Text style={styles.id}>{sample.sample_code}</Text>
         <Badge label={badgeLabel} variant={badgeVariant} />
       </View>
-      <Text style={styles.detail}>{sample.specimenType} | S. aureus</Text>
+      <Text style={styles.detail}>{sample.specimen_type} | S. aureus</Text>
     </TouchableOpacity>
   );
 };
