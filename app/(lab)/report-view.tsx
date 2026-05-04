@@ -5,24 +5,38 @@ import {
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
+  Alert,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { Download, ChevronLeft, Bug } from "lucide-react-native";
-import { getReport } from "../../services/api";
-import { Report } from "../../types";
+import { ChevronLeft, Bug, Send } from "lucide-react-native";
+import { getFullSampleReport } from "../../services/api";
+import { Sample } from "../../types";
 
-export default function ClinicianReportView() {
-  const { reportId } = useLocalSearchParams<{ reportId: string }>();
+export default function LabReportView() {
+  const { sampleId } = useLocalSearchParams<{ sampleId: string }>();
   const router = useRouter();
-  const [report, setReport] = useState<Report | null>(null);
+  const [sample, setSample] = useState<Sample | null>(null);
+  const [isMRSA, setIsMRSA] = useState(false);
+  const [astResults, setAstResults] = useState<
+    { antibiotic: string; abbreviation: string; result: string }[]
+  >([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isPublishing, setIsPublishing] = useState(false);
 
   useEffect(() => {
     const fetchReport = async () => {
-      if (!reportId) return;
+      if (!sampleId) return;
       try {
-        const data = await getReport(reportId);
-        setReport(data);
+        const report = await getFullSampleReport(sampleId);
+        if (report) {
+          setSample(report.sample);
+          setIsMRSA(report.isolate?.is_mrsa ?? false);
+          setAstResults(
+            report.astResults
+              .filter((r) => r.result !== null)
+              .map((r) => ({ ...r, result: r.result as string })),
+          );
+        }
       } catch (e) {
         console.error(e);
       } finally {
@@ -30,7 +44,21 @@ export default function ClinicianReportView() {
       }
     };
     fetchReport();
-  }, [reportId]);
+  }, [sampleId]);
+
+  const handlePublish = async () => {
+    if (!sample) return;
+    setIsPublishing(true);
+    try {
+      Alert.alert("Success", "Report published successfully.", [
+        { text: "OK", onPress: () => router.back() },
+      ]);
+    } catch {
+      Alert.alert("Error", "Failed to publish report.");
+    } finally {
+      setIsPublishing(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -44,7 +72,7 @@ export default function ClinicianReportView() {
             <Text className="text-xs text-gray-500 mt-0.5">Loading...</Text>
           </View>
           <TouchableOpacity className="p-1">
-            <Download size={22} color="#111827" />
+            <Send size={22} color="#111827" />
           </TouchableOpacity>
         </View>
         <View className="flex-1 justify-center items-center">
@@ -54,7 +82,7 @@ export default function ClinicianReportView() {
     );
   }
 
-  if (!report) {
+  if (!sample) {
     return (
       <View className="flex-1 bg-gray-50">
         <View className="flex-row items-center justify-between px-4 py-3 bg-white">
@@ -66,15 +94,18 @@ export default function ClinicianReportView() {
             <Text className="text-xs text-gray-500 mt-0.5">Error</Text>
           </View>
           <TouchableOpacity className="p-1">
-            <Download size={22} color="#111827" />
+            <Send size={22} color="#111827" />
           </TouchableOpacity>
         </View>
         <View className="flex-1 justify-center items-center">
-          <Text className="text-base text-gray-500">Report not found.</Text>
+          <Text className="text-base text-gray-500">Sample not found.</Text>
         </View>
       </View>
     );
   }
+
+  const patientDemographics = `${sample.age_group} ${sample.sex === "M" ? "Male" : "Female"}`;
+  const organism = "Staphylococcus aureus";
 
   return (
     <View className="flex-1 bg-gray-50">
@@ -84,10 +115,16 @@ export default function ClinicianReportView() {
         </TouchableOpacity>
         <View className="flex-1 items-center">
           <Text className="text-lg font-bold text-gray-900">Lab Report</Text>
-          <Text className="text-xs text-gray-500 mt-0.5">{report.id} | FINAL</Text>
+          <Text className="text-xs text-gray-500 mt-0.5">
+            {sample.sample_code} | DRAFT
+          </Text>
         </View>
-        <TouchableOpacity className="p-1">
-          <Download size={22} color="#111827" />
+        <TouchableOpacity
+          onPress={handlePublish}
+          disabled={isPublishing}
+          className="p-1"
+        >
+          <Send size={22} color={isPublishing ? "#9CA3AF" : "#111827"} />
         </TouchableOpacity>
       </View>
 
@@ -100,20 +137,22 @@ export default function ClinicianReportView() {
             MUST Microbiology Laboratory
           </Text>
           <Text className="text-xl font-bold text-white mb-3">
-            {report.organism} Susceptibility Report
+            {organism} Susceptibility Report
           </Text>
-          <View className="absolute top-5 right-5 bg-green-600 px-3 py-1 rounded-full">
-            <Text className="text-xs font-semibold text-white">FINAL</Text>
+          <View className="absolute top-5 right-5 bg-amber-600 px-3 py-1 rounded-full">
+            <Text className="text-xs font-semibold text-white">DRAFT</Text>
           </View>
           <View className="flex-row justify-between mt-3">
             <View className="flex-1">
-              <Text className="text-xs text-gray-400 mb-1">Report #:</Text>
-              <Text className="text-sm font-medium text-white">{report.id}</Text>
+              <Text className="text-xs text-gray-400 mb-1">Sample #:</Text>
+              <Text className="text-sm font-medium text-white">
+                {sample.sample_code}
+              </Text>
             </View>
             <View className="flex-1">
               <Text className="text-xs text-gray-400 mb-1">Date:</Text>
               <Text className="text-sm font-medium text-white">
-                {report.date}
+                {sample.received_date?.split("T")[0]}
               </Text>
             </View>
           </View>
@@ -121,13 +160,13 @@ export default function ClinicianReportView() {
             <View className="flex-1">
               <Text className="text-xs text-gray-400 mb-1">Specimen:</Text>
               <Text className="text-sm font-medium text-white">
-                {report.specimenType}
+                {sample.specimen_type}
               </Text>
             </View>
             <View className="flex-1">
               <Text className="text-xs text-gray-400 mb-1">Patient:</Text>
               <Text className="text-sm font-medium text-white">
-                {report.patientDemographics}
+                {patientDemographics}
               </Text>
             </View>
           </View>
@@ -143,7 +182,7 @@ export default function ClinicianReportView() {
             </View>
             <View className="flex-1">
               <Text className="text-lg font-bold text-gray-900 mb-1">
-                {report.organism}
+                {organism}
               </Text>
               <Text className="text-sm text-gray-500">
                 Gram-Positive Cocci | MALDI-TOF
@@ -152,7 +191,7 @@ export default function ClinicianReportView() {
           </View>
           <View className="bg-[#FDECEA] px-3 py-1.5 rounded-lg self-start">
             <Text className="text-xs font-semibold text-pink-700">
-              {report.isMRSA
+              {isMRSA
                 ? "Methicillin-Resistant (MRSA)"
                 : "Methicillin-Susceptible (MSSA)"}
             </Text>
@@ -161,15 +200,14 @@ export default function ClinicianReportView() {
 
         <View className="bg-white rounded-xl p-4 mb-4 shadow-sm">
           <Text className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
-            ANTIMICROBIAL SUSCEPTIBILITY ({report.astResults.length}{" "}
-            ANTIBIOTICS)
+            ANTIMICROBIAL SUSCEPTIBILITY ({astResults.length} ANTIBIOTICS)
           </Text>
           <Text className="text-xs text-gray-400 mb-2">
             Disc Diffusion | CLSI Guidelines
           </Text>
           <View className="h-px bg-gray-200 mb-3" />
 
-          {report.astResults.map((ast, idx) => {
+          {astResults.map((ast, idx) => {
             const bgColor = ast.result === "R" ? "#FDECEA" : "#FFFFFF";
             const badgeColor =
               ast.result === "R"
@@ -205,26 +243,38 @@ export default function ClinicianReportView() {
           })}
 
           <Text className="text-xs text-gray-400 italic mt-2 text-center">
-            + {Math.max(0, report.astResults.length - 6)} more antibiotics
-            tested (scroll full report to view)
+            + {Math.max(0, astResults.length - 6)} more antibiotics tested
+            (scroll full report to view)
           </Text>
         </View>
 
         <View className="bg-gray-100 rounded-xl p-4 mb-4">
           <Text className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
-            LOCAL {report.organism.toUpperCase()} RESISTANCE CONTEXT
+            LOCAL {organism.toUpperCase()} RESISTANCE CONTEXT
           </Text>
           <Text className="text-sm text-gray-700 leading-5">
-            {report.localContext}
+            {isMRSA
+              ? "MRSA detected. Avoid beta-lactams. Consider Vancomycin or Linezolid based on susceptibility."
+              : "MSSA detected. Beta-lactams such as Oxacillin remain effective. Confirm full susceptibility panel before prescribing."}
           </Text>
         </View>
 
         <View className="mt-2 mb-4">
           <View className="h-px bg-gray-200 mb-3" />
           <Text className="text-xs text-gray-400 text-center">
-            Authorized by: {report.authorisedBy} | {report.date}
+            Sample ID: {sample.sample_code} |{" "}
+            {sample.received_date?.split("T")[0]}
           </Text>
         </View>
+
+        <TouchableOpacity
+          onPress={handlePublish}
+          disabled={isPublishing}
+          className={`w-full py-4 rounded-xl flex-row justify-center items-center mt-4 mb-4 ${isPublishing ? "bg-gray-400" : "bg-emerald-700"}`}
+        >
+          <Send size={20} color="#fff" className="mr-2" />
+          <Text className="text-white font-bold text-lg">Publish Report</Text>
+        </TouchableOpacity>
       </ScrollView>
     </View>
   );

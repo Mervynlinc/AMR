@@ -1,5 +1,5 @@
 import { useRouter } from "expo-router";
-import { ListTodo, LogOut, Plus } from "lucide-react-native";
+import { ArrowLeft, ListTodo, LogOut, Plus } from "lucide-react-native";
 import React from "react";
 import { ScrollView, Text, TouchableOpacity, View } from "react-native";
 
@@ -12,8 +12,13 @@ export default function LabHome() {
   const { user, logout } = useAuthContext();
   const { samples, isLoading } = useSamples();
 
-  const handleLogout = () => {
-    logout();
+  const handleBackToLanding = async () => {
+    await logout();
+    router.replace("/");
+  };
+
+  const handleLogout = async () => {
+    await logout();
     router.replace("/(auth)/login");
   };
 
@@ -22,12 +27,17 @@ export default function LabHome() {
 
   return (
     <View className="flex-1">
-      <View className="bg-emerald-700 pt-12 pb-4 px-4 flex-row items-center justify-between pt-safe">
-        <View>
-          <Text className="text-white text-xl font-bold">
-            Hello, {user?.name}
-          </Text>
-          <Text className="text-emerald-100 text-sm">{user?.facility}</Text>
+      <View className="bg-emerald-700  px-4 flex-row items-center justify-between py-3">
+        <View className="flex-row items-center">
+          <TouchableOpacity onPress={handleBackToLanding} className="p-2 mr-2">
+            <ArrowLeft size={24} color="#fff" />
+          </TouchableOpacity>
+          <View>
+            <Text className="text-white text-xl font-bold">
+              Hello, {user?.name}
+            </Text>
+            <Text className="text-emerald-100 text-sm">{user?.facility}</Text>
+          </View>
         </View>
         <TouchableOpacity onPress={handleLogout} className="p-2">
           <LogOut size={24} color="#fff" />
@@ -86,6 +96,17 @@ export default function LabHome() {
           <Text className="text-gray-500 text-center py-4">
             No completed samples today.
           </Text>
+        )}
+        {!isLoading && completedSamples.length > 0 && (
+          completedSamples.map((sample) => (
+            <SampleCard
+              key={sample.id}
+              sample={sample}
+              onPress={() => {
+                router.push(`/(lab)/report-view?sampleId=${sample.id}`);
+              }}
+            />
+          ))
         )}
       </ScrollView>
 

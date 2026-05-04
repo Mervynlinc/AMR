@@ -33,9 +33,6 @@ const ASTCard: React.FC<ASTCardProps> = ({ entry }) => {
         <Text style={styles.abbr}>({entry.abbreviation})</Text>
       </View>
       <View style={styles.right}>
-        {entry.zoneDiameter !== null && (
-          <Text style={styles.zone}>{entry.zoneDiameter}mm</Text>
-        )}
         <Badge label={entry.result ?? "—"} variant={badgeVariant} />
       </View>
     </View>
@@ -69,10 +66,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-  },
-  zone: {
-    fontSize: 12,
-    color: "#6b7280",
   },
 });
 

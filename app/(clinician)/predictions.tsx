@@ -9,21 +9,20 @@ import {
   View,
 } from "react-native";
 import { LineChart } from "react-native-chart-kit";
+import { SafeAreaView } from "react-native-safe-area-context";
 import ScreenHeader from "../../components/layout/ScreenHeader";
 import { usePredictions } from "../../hooks/usePredictions";
 
 export default function ClinicianPredictions() {
-  // 🔥 user-controlled forecast years
   const [forecastYears, setForecastYears] = useState(5);
-
   const { predictions, isLoading } = usePredictions(forecastYears);
-
   const [selectedAb, setSelectedAb] = useState<string>("");
 
   if (!predictions.length) {
     return (
       <View className="flex-1 justify-center items-center">
-        <Text>No prediction data available</Text>
+        <ActivityIndicator size="large" color="#047857" />
+        <Text className="mt-2 text-gray-500">Connecting to model...</Text>
       </View>
     );
   }
@@ -31,12 +30,11 @@ export default function ClinicianPredictions() {
   const currentPred =
     predictions.find((p) => p.antibiotic === selectedAb) || predictions[0];
 
-  const labels = currentPred.historicalData.map((d) => d.year);
-
+  const labels = currentPred.historicalData.map((d) => d.year.toString());
   const mainData = currentPred.historicalData.map((d) => d.rate);
   const upperData = currentPred.historicalData.map((d) => d.upper);
   const lowerData = currentPred.historicalData.map((d) => d.lower);
-
+  const currentYear = new Date().getFullYear();
   const chartData = {
     labels,
     datasets: [
@@ -57,9 +55,36 @@ export default function ClinicianPredictions() {
       },
     ],
   };
-
+  const ANTIBIOTIC_NAMES: Record<string, string> = {
+    AMK: "Amikacin",
+    AMX: "Amoxicillin",
+    AMC: "Amoxicillin/Clavulanic acid",
+    AMP: "Ampicillin",
+    AZM: "Azithromycin",
+    CRO: "Ceftriaxone",
+    CXM: "Cefuroxime",
+    CIP: "Ciprofloxacin",
+    OXA: "Oxacillin",
+    CHL: "Chloramphenicol",
+    CLI: "Clindamycin",
+    GEN: "Gentamicin",
+    ERY: "Erythromycin",
+    TCY: "Tetracycline",
+    SXT: "Trimethoprim/Sulfamethoxazole",
+    VAN: "Vancomycin",
+    PEN: "Penicillin",
+    IPM: "Imipenem",
+    CAZ: "Ceftazidime",
+    CTX: "Cefotaxime",
+    FOX: "Cefoxitin",
+    LNZ: "Linezolid",
+    PEF: "Pefloxacin",
+    NOR: "Norfloxacin",
+  };
+  const fullname =
+    ANTIBIOTIC_NAMES[currentPred.antibiotic] || currentPred.antibiotic;
   return (
-    <View className="flex-1 bg-gray-50">
+    <SafeAreaView className="flex-1 bg-gray-50">
       <ScreenHeader
         title="ML Predictions"
         subtitle="Resistance Forecast Trends"
@@ -75,19 +100,28 @@ export default function ClinicianPredictions() {
             <View className="flex-row items-center mb-1">
               <TrendingUp size={20} color="#6EE7B7" />
               <Text className="text-emerald-100 font-bold ml-2 text-xs">
-                Model v2.0.0
+                HYBRID MODEL V2.1
               </Text>
             </View>
 
             <Text className="text-white text-lg mt-2">
-              Hybrid XGBoost + LSTM prediction model
+              {fullname} Resistance Forecast
             </Text>
 
             <View className="flex-row mt-4 gap-4">
               <View className="bg-emerald-800 px-3 py-2 rounded-lg">
-                <Text className="text-emerald-200 text-xs">Accuracy</Text>
+                <Text className="text-emerald-200 text-xs">MAE</Text>
                 <Text className="text-white font-bold">
-                  {currentPred.accuracy?.toFixed(1)}%
+                  {currentPred.mae?.toFixed(3) || "0.000"}
+                </Text>
+              </View>
+
+              <View className="bg-emerald-800 px-3 py-2 rounded-lg">
+                <Text className="text-emerald-200 text-xs">R²</Text>
+                <Text className="text-white font-bold">
+                  {currentPred.r2
+                    ? `${(currentPred.r2 * 100).toFixed(1)}%`
+                    : "0%"}
                 </Text>
               </View>
 
@@ -100,10 +134,8 @@ export default function ClinicianPredictions() {
             </View>
           </View>
 
-          {/* ANTIBIOTIC SELECTOR */}
           <View className="px-4 py-4">
             <Text className="font-bold mb-3">Select Antibiotic</Text>
-
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
               {predictions.map((p) => (
                 <TouchableOpacity
@@ -120,10 +152,8 @@ export default function ClinicianPredictions() {
               ))}
             </ScrollView>
 
-            {/* YEARS SELECTOR */}
             <View className="mt-4">
               <Text className="font-bold mb-2">Forecast Horizon</Text>
-
               <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                 {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((y) => (
                   <TouchableOpacity
@@ -141,17 +171,19 @@ export default function ClinicianPredictions() {
               </ScrollView>
             </View>
 
-            {/* CHART */}
-            <View className="bg-white rounded-2xl p-4 mt-6">
+            <View className="bg-white rounded-2xl p-4 mt-6 shadow-sm border border-gray-100">
               <Text className="text-lg font-bold mb-4">
                 {currentPred.antibiotic} Trend
               </Text>
 
               <LineChart
+                key={`chart-${currentPred.antibiotic}-${forecastYears}-${labels.length}`}
                 data={chartData}
                 width={Dimensions.get("window").width - 40}
                 height={240}
                 yAxisSuffix="%"
+                // 🔥 Added rotation to ensure years don't overlap when showing 10 yrs
+                verticalLabelRotation={25}
                 chartConfig={{
                   backgroundColor: "#fff",
                   backgroundGradientFrom: "#fff",
@@ -159,15 +191,19 @@ export default function ClinicianPredictions() {
                   decimalPlaces: 0,
                   color: () => "rgba(4,120,87,1)",
                   labelColor: () => "#6B7280",
+                  propsForLabels: {
+                    fontSize: 10,
+                  },
                 }}
                 bezier
               />
             </View>
 
-            {/* STATS */}
             <View className="flex-row mt-6 gap-4">
               <View className="flex-1">
-                <Text className="text-gray-500 text-xs">Current</Text>
+                <Text className="text-gray-500 text-xs">
+                  Current({currentYear})
+                </Text>
                 <Text className="text-xl font-bold">
                   {currentPred.currentRate}%
                 </Text>
@@ -183,17 +219,14 @@ export default function ClinicianPredictions() {
               <View className="flex-1">
                 <Text className="text-gray-500 text-xs">Trend</Text>
                 <Text
-                  className={`text-xl font-bold ${
-                    currentPred.delta > 0 ? "text-red-600" : "text-emerald-600"
-                  }`}
+                  className={`text-xl font-bold ${currentPred.delta > 0 ? "text-red-600" : "text-emerald-600"}`}
                 >
-                  {currentPred.delta > 0 ? "↑" : "↓"}{" "}
+                  {currentPred.delta > 0 ? "▲" : "▼"}{" "}
                   {Math.abs(currentPred.delta)}%
                 </Text>
               </View>
             </View>
 
-            {/* DISCLAIMER */}
             <View className="bg-gray-100 p-4 rounded-xl flex-row mt-6">
               <Info size={18} color="#6B7280" />
               <Text className="text-gray-600 text-sm ml-2">
@@ -203,13 +236,12 @@ export default function ClinicianPredictions() {
           </View>
         </ScrollView>
 
-        {/* 🔥 OVERLAY LOADER (NO FLICKER) */}
         {isLoading && (
-          <View className="absolute inset-0 bg-black/10 flex items-center justify-center">
+          <View className="absolute inset-0 bg-black/5 flex items-center justify-center">
             <ActivityIndicator size="large" color="#047857" />
           </View>
         )}
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
