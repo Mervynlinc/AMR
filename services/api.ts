@@ -293,14 +293,22 @@ export async function getReport(reportId: string): Promise<Report> {
    ───────────────────────────────────────────── */
 
 export async function getPredictions(years: number = 5): Promise<any[]> {
-  const BASE_URL = "https://amr-backend-hjgp.onrender.com";
-  const res = await fetch(`${BASE_URL}/antibiotics`);
-  const { antibiotics }: { antibiotics: string[] } = await res.json();
+  try {
+    const BASE_URL = "https://amr-backend-hjgp.onrender.com";
 
-  return Promise.all(
-    antibiotics.map(async (ab) => {
-      const r = await fetch(`${BASE_URL}/forecast/${ab}?steps=${years}`);
-      return r.json();
-    }),
-  );
+    const res = await fetch(`${BASE_URL}/antibiotics`);
+    const { antibiotics }: { antibiotics: string[] } = await res.json();
+
+    const results = await Promise.all(
+      antibiotics.map(async (ab) => {
+        const r = await fetch(`${BASE_URL}/forecast/${ab}?steps=${years}`);
+        return await r.json();
+      }),
+    );
+
+    return results;
+  } catch (error) {
+    console.error("Prediction API error:", error);
+    throw error;
+  }
 }
