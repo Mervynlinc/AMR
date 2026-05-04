@@ -1,5 +1,5 @@
 import { Tabs, useRouter } from "expo-router";
-import { BarChart3, Home, List, PlusCircle, User } from "lucide-react-native";
+import { FileText, Home, List, PlusCircle, User } from "lucide-react-native";
 import { useEffect } from "react";
 import { ActivityIndicator } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -70,6 +70,13 @@ export default function LabLayout() {
         options={{
           title: "Profile",
           tabBarIcon: ({ color }) => <User size={20} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="report-view"
+        options={{
+          title: "Report",
+          tabBarIcon: ({ color }) => <FileText size={20} color={color} />,
         }}
       />
       <Tabs.Screen
