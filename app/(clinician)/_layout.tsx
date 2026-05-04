@@ -1,36 +1,7 @@
-import { Tabs, useRouter } from "expo-router";
+import { Tabs } from "expo-router";
 import { BarChart3, Brain, FileText, Home } from "lucide-react-native";
-import { useEffect } from "react";
-import { ActivityIndicator } from "react-native";
-import {
-  SafeAreaView,
-  useSafeAreaInsets,
-} from "react-native-safe-area-context";
-
-import { useAuthContext } from "../../context/AuthContext";
 
 export default function ClinicianLayout() {
-  const { role, isLoading } = useAuthContext();
-  const insets = useSafeAreaInsets();
-  const router = useRouter();
-
-  // --- Auth guard logic ---
-  useEffect(() => {
-    if (isLoading) return;
-    if (role !== "clinician") {
-      router.replace("/(auth)/login");
-    }
-  }, [role, isLoading, router]);
-
-  if (isLoading || role !== "clinician") {
-    return (
-      <SafeAreaView className="flex-1 bg-gray-50 justify-center items-center">
-        <ActivityIndicator size="large" color="#047857" />
-      </SafeAreaView>
-    );
-  }
-  // ------------------------
-
   return (
     <Tabs
       screenOptions={{

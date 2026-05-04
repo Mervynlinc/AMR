@@ -1,21 +1,19 @@
 import { useRouter } from "expo-router";
 import {
-    Bug,
-    ChevronRight,
-    Microscope,
-    ShieldCheck,
-    Stethoscope,
+  Bug,
+  ChevronRight,
+  Microscope,
+  ShieldCheck,
+  Stethoscope,
 } from "lucide-react-native";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { ActivityIndicator, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuthContext } from "../context/AuthContext";
-import { login as authLogin } from "../services/auth";
 
 export default function Index() {
-  const { role, isLoading, token, login } = useAuthContext();
+  const { role, isLoading, token } = useAuthContext();
   const router = useRouter();
-  const [isClinicianLoggingIn, setIsClinicianLoggingIn] = useState(false);
 
   useEffect(() => {
     if (isLoading) return;
@@ -29,19 +27,11 @@ export default function Index() {
     }
   }, [isLoading, role, token, router]);
 
-  const handleClinicianShortcut = async () => {
-    setIsClinicianLoggingIn(true);
-    try {
-      const response = await authLogin("CLIN-001", "password");
-      await login(response.token, response.role, response.user);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setIsClinicianLoggingIn(false);
-    }
+  const handleClinicianShortcut = () => {
+    router.replace("/(clinician)/home");
   };
 
-  if (isLoading || isClinicianLoggingIn || (token && role)) {
+  if (isLoading || (token && role)) {
     return (
       <SafeAreaView className="flex-1 bg-gray-50 justify-center items-center">
         <ActivityIndicator size="large" color="#047857" />
