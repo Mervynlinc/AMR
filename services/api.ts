@@ -227,7 +227,6 @@ export async function getPredictions(years: number = 5): Promise<any[]> {
 
     const results = await Promise.all(
       antibiotics.map(async (ab) => {
-        // 🔥 CHANGED: 'years=' to 'steps=' to match your backend
         const r = await fetch(`${BASE_URL}/forecast/${ab}?steps=${years}`);
         return await r.json();
       }),
@@ -238,4 +237,10 @@ export async function getPredictions(years: number = 5): Promise<any[]> {
     console.error("Prediction API error:", error);
     throw error;
   }
+}
+
+export async function getHistory(antibiotic: string): Promise<any> {
+  const BASE_URL = "https://amr-backend-hjgp.onrender.com";
+  const res = await fetch(`${BASE_URL}/history/${antibiotic}`);
+  return await res.json();
 }
