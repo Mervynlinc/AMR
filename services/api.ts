@@ -1,12 +1,7 @@
 import axios from "axios";
-import { sb } from "../lib/supabase";
 import useAuthStore from "../store/auth";
 import { ASTEntry, Report, Sample } from "../types/index";
 
-/* ─────────────────────────────────────────────
-   Legacy REST client — only used for reports
-   and predictions (external API)
-   ───────────────────────────────────────────── */
 const api = axios.create({
   baseURL: process.env.EXPO_PUBLIC_AMR_API_BASE_URL ?? "http://localhost:3000",
   headers: { "Content-Type": "application/json" },
@@ -14,24 +9,29 @@ const api = axios.create({
 
 api.interceptors.request.use((config) => {
   const token = useAuthStore.getState().token;
-  if (token) config.headers.Authorization = `Bearer ${token}`;
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
   return config;
 });
+
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      useAuthStore.getState().clearAuth();
+    }
+    return Promise.reject(error);
+  },
+);
+
+const delay = () => new Promise((resolve) => setTimeout(resolve, 300));
 
 export default api;
 
 /* ─────────────────────────────────────────────
-   Helper — current logged-in lab user UUID
-   ───────────────────────────────────────────── */
-function getUserId(): string {
-  const id = useAuthStore.getState().user?.id;
-  if (!id) throw new Error("Not authenticated");
-  return id;
-}
-
-/* ─────────────────────────────────────────────
-   SAMPLES
-   ───────────────────────────────────────────── */
+   SAMPLES (unchanged)
+───────────────────────────────────────────── */
 
 export async function getSamples(): Promise<Sample[]> {
   try {
@@ -56,33 +56,32 @@ export async function createSample(payload: Partial<Sample>): Promise<Sample> {
   const { data } = await sb.post<Sample>(
     "/samples",
     {
-      created_by: userId,
-      sample_code: payload.sample_code ?? payload.id,
-      specimen_type: payload.specimen_type,
-      collection_date: payload.collection_date ?? new Date().toISOString(),
-      received_date: payload.received_date ?? new Date().toISOString(),
-      age_group: payload.age_group,
-      sex: payload.sex,
-      patient_type: payload.patient_type,
-      ward: payload.ward ?? null,
+      id: "SMP-1001",
+      facility: "General Hospital",
+      specimenType: "Blood Culture",
+      collectionDate: "2026-04-20",
+      receivedDate: "2026-04-21",
+      ageGroup: "Adult",
+      sex: "M",
+      patientType: "Inpatient",
+      ward: "ICU",
       status: "pending_isolate",
+      astResults: [],
+      isMDR: false,
     },
-    { headers: { Prefer: "return=representation" } },
-  );
-
-  // PostgREST returns an array on insert — pick the first row
-  return (Array.isArray(data) ? data[0] : data) as Sample;
-}
-
-export async function updateSampleStatus(
-  sampleId: string,
-  status: Sample["status"],
-): Promise<void> {
-  await sb.patch(
-    "/samples",
-    { status },
     {
-      params: { id: `eq.${sampleId}` },
+      id: "SMP-1002",
+      facility: "City Clinic",
+      specimenType: "Urine",
+      collectionDate: "2026-04-21",
+      receivedDate: "2026-04-22",
+      ageGroup: "Pediatric",
+      sex: "F",
+      patientType: "Outpatient",
+      ward: "OPD",
+      status: "pending_ast",
+      astResults: [],
+      isMDR: false,
     },
   );
 }
@@ -146,15 +145,28 @@ export async function createIsolate(
       growth_detected: growthDetected,
       growth_time_hours: growthTimeHours,
     },
-    { headers: { Prefer: "return=representation" } },
-  );
-
-  return Array.isArray(data) ? data[0] : (data as any);
+  ];
 }
 
-/* ─────────────────────────────────────────────
-   SUSCEPTIBILITY TESTS (AST)
-   ───────────────────────────────────────────── */
+export async function createSample(data: Partial<Sample>): Promise<Sample> {
+  await delay();
+  const newSample: Sample = {
+    id: "SMP-" + Date.now(),
+    facility: data.facility || "Unknown Facility",
+    specimenType: data.specimenType || "Unknown Specimen",
+    collectionDate: data.collectionDate || new Date().toISOString(),
+    receivedDate: data.receivedDate || new Date().toISOString(),
+    ageGroup: data.ageGroup || "Unknown",
+    sex: data.sex || "Unknown",
+    patientType: data.patientType || "Unknown",
+    ward: data.ward || "Unknown",
+    status: data.status || "pending_isolate",
+    astResults: data.astResults || [],
+    isMDR: data.isMDR || false,
+    ...data,
+  } as Sample;
+  return newSample;
+}
 
 export async function saveAST(
   sampleId: string,
@@ -331,37 +343,44 @@ export async function publishReport(sampleId: string): Promise<void> {
 }
 
 /* ─────────────────────────────────────────────
-   USER STATS
-   ───────────────────────────────────────────── */
+   REPORTS (unchanged)
+───────────────────────────────────────────── */
 
-export interface LabUserStats {
-  total_samples: number;
-  completed: number;
-  pending: number;
-  last_sample_at: string | null;
-  total_isolates: number;
-  mrsa_count: number;
-  mdr_count: number;
-  ast_count: number;
-}
+export async function getReports(): Promise<Report[]> {
+  await delay();
 
-export async function getLabUserStats(userId: string): Promise<LabUserStats> {
-  const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL ?? "";
-  const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? "";
-
-  const { data } = await axios.post<LabUserStats>(
-    `${SUPABASE_URL}/rest/v1/rpc/get_lab_user_stats`,
-    { p_user_id: userId },
+  const mockAstResults1: ASTEntry[] = [
     {
-      headers: {
-        apikey: SUPABASE_ANON_KEY,
-        Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
-        "Content-Type": "application/json",
-      },
+      antibiotic: "Penicillin",
+      abbreviation: "PEN",
+      result: "R",
     },
-  );
-  return data;
-}
+    {
+      antibiotic: "Cefoxitin",
+      abbreviation: "FOX",
+      result: "R",
+    },
+    {
+      antibiotic: "Erythromycin",
+      abbreviation: "ERY",
+      result: "I",
+    },
+    {
+      antibiotic: "Clindamycin",
+      abbreviation: "CLI",
+      result: "S",
+    },
+    {
+      antibiotic: "Vancomycin",
+      abbreviation: "VAN",
+      result: "S",
+    },
+    {
+      antibiotic: "Linezolid",
+      abbreviation: "LNZ",
+      result: "S",
+    },
+  ];
 
 /* ─────────────────────────────────────────────
     REPORTS (clinician — from database)
@@ -588,10 +607,13 @@ export async function getResistanceTrends(): Promise<
     return [];
   }
 }
+export async function getPredictions(years: number = 5): Promise<any[]> {
+  try {
+    const BASE_URL = "https://amr-backend-hjgp.onrender.com";
 
-/* ─────────────────────────────────────────────
-   PREDICTIONS (external ML API)
-   ───────────────────────────────────────────── */
+    const res = await fetch(`${BASE_URL}/antibiotics`);
+    const data = await res.json();
+    const antibiotics: string[] = data.antibiotics;
 
 export async function getPredictions(years: number = 5): Promise<any[]> {
   try {
