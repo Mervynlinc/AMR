@@ -1,12 +1,12 @@
-import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { ChevronDown, ChevronUp } from 'lucide-react-native';
 import ScreenHeader from '../../components/layout/ScreenHeader';
 
 import ResistanceBar from '../../components/ui/ResistanceBar';
 import { useRouter } from 'expo-router';
+import { getResistanceAggregates, getResistanceYears } from "../../services/api";
 
-const years = ['2021', '2022', '2023', '2024'];
 const intensityOptions = [
   { label: 'All Resistance', value: 'all' },
   { label: 'High (>50%)', value: 'high' },
@@ -15,45 +15,34 @@ const intensityOptions = [
 ];
 
 export default function ClinicianAMRData() {
-  const [year, setYear] = useState('2024');
+  const [years, setYears] = useState<string[]>([]);
+  const [year, setYear] = useState('');
   const [intensity, setIntensity] = useState('all');
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
+  const [amrData, setAmrData] = useState<{ name: string; rate: number }[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
-  const amrData = [
-    { name: "Oxacillin", rate: 35 },
-    { name: "Cefoxitin", rate: 35 },
-    { name: "Vancomycin", rate: 0 },
-    { name: "Linezolid", rate: 0 },
-    { name: "Daptomycin", rate: 1 },
-    { name: "Teicoplanin", rate: 2 },
-    { name: "Erythromycin", rate: 45 },
-    { name: "Clindamycin", rate: 28 },
-    { name: "Azithromycin", rate: 42 },
-    { name: "Trimethoprim/Sulfamethoxazole", rate: 12 },
-    { name: "Ciprofloxacin", rate: 55 },
-    { name: "Levofloxacin", rate: 52 },
-    { name: "Moxifloxacin", rate: 48 },
-    { name: "Gentamicin", rate: 15 },
-    { name: "Amikacin", rate: 5 },
-    { name: "Tobramycin", rate: 18 },
-    { name: "Tetracycline", rate: 30 },
-    { name: "Doxycycline", rate: 20 },
-    { name: "Minocycline", rate: 8 },
-    { name: "Rifampin", rate: 3 },
-    { name: "Fusidic Acid", rate: 22 },
-    { name: "Mupirocin", rate: 10 },
-    { name: "Chloramphenicol", rate: 4 },
-    { name: "Fosfomycin", rate: 9 },
-    { name: "Quinupristin/Dalfopristin", rate: 0 },
-  ];
+  useEffect(() => {
+    getResistanceYears().then((yrs) => {
+      const strYears = yrs.map(String).reverse();
+      setYears(strYears);
+      if (!year && strYears.length > 0) {
+        setYear(strYears[0]);
+      }
+    });
+  }, []);
 
-  const filteredData = amrData.filter(item => {
-    if (intensity === 'high') return item.rate > 50;
-    if (intensity === 'medium') return item.rate >= 20 && item.rate <= 50;
-    if (intensity === 'low') return item.rate < 20;
-    return true;
-  });
+  useEffect(() => {
+    if (!year) return;
+    const fetchData = async () => {
+      setIsLoading(true);
+      const data = await getResistanceAggregates(year, intensity as any);
+      setAmrData(data);
+      setIsLoading(false);
+    };
+    fetchData();
+  }, [year, intensity]);
 
   const Dropdown = ({ label, value, options, onSelect, dropdownKey }: any) => {
     const isOpen = openDropdown === dropdownKey;
@@ -118,8 +107,12 @@ export default function ClinicianAMRData() {
       </View>
 
       <ScrollView className="flex-1 px-4 pt-4">
-        {filteredData.length > 0 ? (
-          filteredData.sort((a, b) => b.rate - a.rate).map((ab) => (
+        {isLoading ? (
+          <View className="flex-1 justify-center items-center py-8">
+            <ActivityIndicator size="large" color="#047857" />
+          </View>
+        ) : amrData.length > 0 ? (
+          amrData.map((ab) => (
             <View key={ab.name} className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-3">
               <Text className="text-gray-800 font-bold mb-1.5">{ab.name}</Text>
               <ResistanceBar rate={ab.rate} showLabel />

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { getSamples } from "../services/api";
 import useAMRStore from "../store/amr";
 
@@ -7,9 +7,22 @@ export function useSamples() {
   const samples = useAMRStore((state) => state.samples);
   const setSamples = useAMRStore((state) => state.setSamples);
 
+  const fetchSamples = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const data = await getSamples();
+      setSamples(data);
+    } catch (error) {
+      console.error("Failed to fetch samples:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [setSamples]);
+
   useEffect(() => {
     let isMounted = true;
-    const fetchSamples = async () => {
+    
+    const loadSamples = async () => {
       setIsLoading(true);
       try {
         const data = await getSamples();
@@ -25,12 +38,12 @@ export function useSamples() {
       }
     };
 
-    fetchSamples();
+    loadSamples();
 
     return () => {
       isMounted = false;
     };
   }, [setSamples]);
 
-  return { samples, isLoading };
+  return { samples, isLoading, refetch: fetchSamples };
 }
