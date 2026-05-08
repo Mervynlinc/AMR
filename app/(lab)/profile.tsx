@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useAuthContext } from "../../context/AuthContext";
 import { getLabUserStats, LabUserStats } from "../../services/api";
@@ -92,7 +91,7 @@ export default function LabProfile() {
   );
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-50">
+    <View className="flex-1 bg-gray-50">
       {/* Header */}
       <View className="flex-row items-center px-4 py-3 bg-white border-b border-gray-200">
         <TouchableOpacity
@@ -231,18 +230,6 @@ export default function LabProfile() {
             </Text>
           </TouchableOpacity>
 
-          <View className="flex-row items-center justify-between px-4 py-3.5 border-b border-gray-100">
-            <Text className="text-base font-medium text-gray-900 flex-1">
-              Sync over Wi-Fi only
-            </Text>
-            <Switch
-              value={wifiOnly}
-              onValueChange={setWifiOnly}
-              trackColor={{ false: "#e5e7eb", true: "#047857" }}
-              thumbColor={wifiOnly ? "#ffffff" : "#f3f4f6"}
-            />
-          </View>
-
           <TouchableOpacity
             className="flex-row items-center justify-between px-4 py-3.5"
             activeOpacity={0.7}
@@ -265,6 +252,6 @@ export default function LabProfile() {
           <Text className="text-base font-semibold text-red-600">Sign Out</Text>
         </TouchableOpacity>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }

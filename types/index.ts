@@ -88,6 +88,19 @@ export interface Sample {
   created_at: string;
   facility?: Facility;
   created_by_user?: DatabaseUser;
+  isolates?: {
+    id: string;
+    organism: string;
+    growth_detected: boolean;
+    growth_time_hours?: number;
+    is_mrsa: boolean;
+    is_mdr: boolean;
+    mdr_class_count?: number;
+    confirmed_at?: string;
+    confirmed_by?: string;
+    sample_id?: string;
+    identification_method?: string;
+  };
 }
 
 export interface Isolate {
@@ -97,6 +110,7 @@ export interface Isolate {
   organism: string;
   identification_method: IDMethod;
   growth_detected: boolean;
+  growth_time_hours?: number;
   is_mrsa: boolean;
   is_mdr: boolean;
   mdr_class_count: number;
@@ -218,6 +232,7 @@ export interface ASTWithContext {
 export interface ASTEntry {
   antibiotic: string;
   abbreviation: string;
+  drug_class?: string;
   result: ASTResult | null;
 }
 
@@ -233,12 +248,16 @@ export interface Report {
   sampleId: string;
   specimenType: string;
   patientDemographics: string;
+  patientSex: string;
   organism: string;
   isMRSA: boolean;
   astResults: ASTEntry[];
   localContext: string;
   authorisedBy: string;
+  authorisedByName?: string;
   date: string;
+  remarks?: string;
+  growthTimeHours?: number;
 }
 
 export interface Prediction {

@@ -12,41 +12,58 @@ import {
 import { useRouter, useLocalSearchParams } from "expo-router";
 import ScreenHeader from "../../components/layout/ScreenHeader";
 
-import { saveAST } from "../../services/api";
+import { saveAST, deleteSample } from "../../services/api";
 import useAMRStore from "../../store/amr";
 import { ASTEntry, ASTResult } from "../../types";
+import { Trash2 } from "lucide-react-native";
 
-const INITIAL_ANTIBIOTICS = [
-  { name: "Oxacillin", abbr: "OX", class: "Beta-lactam" },
+const ANTIBIOTICS = [
+  { name: "Amikacin", abbr: "AMK", class: "Aminoglycoside" },
+  { name: "Amoxicillin", abbr: "AMX", class: "Beta-lactam" },
+  { name: "Amoxicillin/Clavulanate", abbr: "AMC", class: "Beta-lactam" },
+  { name: "Ampicillin", abbr: "AMP", class: "Beta-lactam" },
+  { name: "Azithromycin", abbr: "AZM", class: "Macrolide" },
+  { name: "Cefotaxime", abbr: "CTX", class: "Beta-lactam" },
   { name: "Cefoxitin", abbr: "FOX", class: "Beta-lactam" },
-  { name: "Vancomycin", abbr: "VA", class: "Glycopeptide" },
-  { name: "Erythromycin", abbr: "E", class: "Macrolide" },
-  { name: "Clindamycin", abbr: "DA", class: "Lincosamide" },
-  {
-    name: "Trimethoprim/Sulfamethoxazole",
-    abbr: "SXT",
-    class: "Folate pathway inhibitor",
-  },
+  { name: "Ceftazidime", abbr: "CAZ", class: "Beta-lactam" },
+  { name: "Ceftriaxone", abbr: "CRO", class: "Beta-lactam" },
+  { name: "Cefuroxime", abbr: "CXM", class: "Beta-lactam" },
+  { name: "Chloramphenicol", abbr: "CHL", class: "Amphenicol" },
   { name: "Ciprofloxacin", abbr: "CIP", class: "Fluoroquinolone" },
+  { name: "Clindamycin", abbr: "CLI", class: "Lincosamide" },
+  { name: "Erythromycin", abbr: "ERY", class: "Macrolide" },
+  { name: "Gentamicin", abbr: "GEN", class: "Aminoglycoside" },
+  { name: "Imipenem", abbr: "IPM", class: "Beta-lactam" },
+  { name: "Linezolid", abbr: "LNZ", class: "Oxazolidinone" },
+  { name: "Norfloxacin", abbr: "NOR", class: "Fluoroquinolone" },
+  { name: "Oxacillin", abbr: "OXA", class: "Beta-lactam" },
+  { name: "Pefloxacin", abbr: "PEF", class: "Fluoroquinolone" },
+  { name: "Penicillin", abbr: "PEN", class: "Beta-lactam" },
+  { name: "Tetracycline", abbr: "TCY", class: "Tetracycline" },
+  { name: "Trimethoprim/Sulfamethoxazole", abbr: "SXT", class: "Folate pathway inhibitor" },
+  { name: "Vancomycin", abbr: "VAN", class: "Glycopeptide" },
 ];
 
 export default function LabAST() {
   const router = useRouter();
-  const { sampleId } = useLocalSearchParams<{ sampleId: string }>();
-  const { updateSample } = useAMRStore();
+  const { sampleId, sampleCode } = useLocalSearchParams<{ sampleId: string; sampleCode: string }>();
+  const { updateSample, removeSample } = useAMRStore();
 
   const [method, setMethod] = useState("Disk Diffusion");
+  const [remarks, setRemarks] = useState("");
   const [results, setResults] = useState<
     Record<string, { result: ASTResult | null }>
   >(
     Object.fromEntries(
-      INITIAL_ANTIBIOTICS.map((a) => [a.name, { result: null }]),
+      ANTIBIOTICS.map((a) => [a.name, { result: null }]),
     ),
   );
 
+  const displaySampleId = sampleCode || sampleId || "Unknown";
+
   const isMDR = useMemo(() => {
     const resistantClasses = new Set<string>();
-    INITIAL_ANTIBIOTICS.forEach((ab) => {
+    ANTIBIOTICS.forEach((ab) => {
       if (results[ab.name].result === "R") resistantClasses.add(ab.class);
     });
     return resistantClasses.size >= 3;
@@ -59,6 +76,29 @@ export default function LabAST() {
     );
   }, [results]);
 
+  const handleDelete = () => {
+    Alert.alert(
+      "Delete Sample",
+      "Are you sure you want to delete this sample? This action cannot be undone.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await deleteSample(sampleId);
+              removeSample(sampleId);
+              router.replace("/(lab)/home");
+            } catch (error) {
+              Alert.alert("Error", "Failed to delete sample.");
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const handleResultChange = (antibiotic: string, result: ASTResult) => {
     setResults((prev) => ({
       ...prev,
@@ -66,18 +106,38 @@ export default function LabAST() {
     }));
   };
 
+  const handleClearResult = (antibiotic: string) => {
+    setResults((prev) => ({
+      ...prev,
+      [antibiotic]: { result: null },
+    }));
+  };
+
   const handleComplete = async () => {
     if (!sampleId) return;
 
-    const formattedResults: ASTEntry[] = INITIAL_ANTIBIOTICS.map((ab) => ({
+    const formattedResults: ASTEntry[] = ANTIBIOTICS.map((ab) => ({
       antibiotic: ab.name,
       abbreviation: ab.abbr,
+      drug_class: ab.class,
       result: results[ab.name].result,
     }));
 
     try {
-      await saveAST(sampleId, formattedResults, isMDR, isMRSA);
-      updateSample(sampleId, { status: "complete" });
+      await saveAST(sampleId, formattedResults, isMDR, isMRSA, remarks);
+
+      const sample = useAMRStore.getState().samples.find((s) => s.id === sampleId);
+      const existingIsolate = sample?.isolates;
+      const updatedIsolates = existingIsolate ? {
+        ...existingIsolate,
+        is_mrsa: isMRSA,
+        is_mdr: isMDR,
+      } : undefined;
+
+      updateSample(sampleId, {
+        status: "complete",
+        isolates: updatedIsolates,
+      });
 
       Alert.alert("Success", "AST results saved successfully.", [
         { text: "OK", onPress: () => router.replace("/(lab)/home") },
@@ -94,9 +154,14 @@ export default function LabAST() {
     >
       <ScreenHeader
         title="AST Results"
-        subtitle={sampleId as string}
+        subtitle={`Sample: ${displaySampleId}`}
         showBack
-        onBack={() => router.back()}
+        onBack={() => router.replace(`/(lab)/isolate?sampleId=${sampleId}&sampleCode=${sampleCode}`)}
+        rightAction={
+          <TouchableOpacity onPress={handleDelete} className="p-2">
+            <Trash2 size={20} color="#dc2626" />
+          </TouchableOpacity>
+        }
       />
 
       {isMDR && (
@@ -124,18 +189,28 @@ export default function LabAST() {
           Antibiotics Panel
         </Text>
 
-        {INITIAL_ANTIBIOTICS.map((ab) => (
+        {ANTIBIOTICS.map((ab) => (
           <View
             key={ab.name}
             className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-3"
           >
-            <View className="mb-3 border-b border-gray-100 pb-2">
-              <Text className="font-bold text-gray-900 text-base">
-                {ab.name}
-              </Text>
-              <Text className="text-gray-400 text-xs">
-                {ab.abbr} • {ab.class}
-              </Text>
+            <View className="flex-row items-start justify-between mb-3 border-b border-gray-100 pb-2">
+              <View className="flex-1">
+                <Text className="font-bold text-gray-900 text-base">
+                  {ab.name}
+                </Text>
+                <Text className="text-gray-400 text-xs">
+                  {ab.abbr} • {ab.class}
+                </Text>
+              </View>
+              {results[ab.name].result && (
+                <TouchableOpacity
+                  onPress={() => handleClearResult(ab.name)}
+                  className="bg-gray-100 rounded-full w-6 h-6 items-center justify-center ml-2"
+                >
+                  <Text className="text-gray-500 text-xs font-bold">✕</Text>
+                </TouchableOpacity>
+              )}
             </View>
             <View className="flex-row gap-2">
               <TouchableOpacity
@@ -171,6 +246,21 @@ export default function LabAST() {
             </View>
           </View>
         ))}
+
+        <View className="mb-4 mt-4">
+          <Text className="text-gray-700 font-medium mb-2">
+            Technician Remarks
+          </Text>
+          <TextInput
+            value={remarks}
+            onChangeText={setRemarks}
+            placeholder="Add any additional remarks or observations..."
+            multiline
+            numberOfLines={4}
+            className="bg-white border border-gray-200 rounded-lg px-4 py-3 text-gray-900"
+            textAlignVertical="top"
+          />
+        </View>
 
         <TouchableOpacity
           onPress={handleComplete}

@@ -5,17 +5,33 @@ import {
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
+  Alert,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Download, ChevronLeft, Bug } from "lucide-react-native";
 import { getReport } from "../../services/api";
+import { downloadReportPdf } from "../../services/pdf";
 import { Report } from "../../types";
+import useAMRStore from "../../store/amr";
+
+function formatDate(dateStr: string): string {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const month = months[d.getMonth()];
+  const day = d.getDate();
+  const year = d.getFullYear();
+  const hours = d.getHours().toString().padStart(2, '0');
+  const minutes = d.getMinutes().toString().padStart(2, '0');
+  return `${month} ${day}, ${year} ${hours}:${minutes}`;
+}
 
 export default function ClinicianReportView() {
   const { reportId } = useLocalSearchParams<{ reportId: string }>();
   const router = useRouter();
   const [report, setReport] = useState<Report | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isDownloading, setIsDownloading] = useState(false);
 
   useEffect(() => {
     const fetchReport = async () => {
@@ -30,7 +46,20 @@ export default function ClinicianReportView() {
       }
     };
     fetchReport();
+    useAMRStore.getState().markReportRead(reportId);
   }, [reportId]);
+
+  const handleDownload = async () => {
+    if (!report || isDownloading) return;
+    setIsDownloading(true);
+    try {
+      await downloadReportPdf(report);
+    } catch {
+      Alert.alert("Error", "Failed to download report.");
+    } finally {
+      setIsDownloading(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -86,13 +115,17 @@ export default function ClinicianReportView() {
           <Text className="text-lg font-bold text-gray-900">Lab Report</Text>
           <Text className="text-xs text-gray-500 mt-0.5">{report.id} | FINAL</Text>
         </View>
-        <TouchableOpacity className="p-1">
-          <Download size={22} color="#111827" />
+        <TouchableOpacity onPress={handleDownload} disabled={isDownloading} className="p-1">
+          {isDownloading ? (
+            <ActivityIndicator size="small" color="#111827" />
+          ) : (
+            <Download size={22} color="#111827" />
+          )}
         </TouchableOpacity>
       </View>
 
       <ScrollView
-        className="flex-1 px-4 pt-4 pb-6"
+        className="flex-1 px-4 pt-4 pb-8"
         showsVerticalScrollIndicator={false}
       >
         <View className="bg-[#1A2340] rounded-xl p-5 mb-4 relative">
@@ -107,28 +140,38 @@ export default function ClinicianReportView() {
           </View>
           <View className="flex-row justify-between mt-3">
             <View className="flex-1">
-              <Text className="text-xs text-gray-400 mb-1">Report #:</Text>
+              <Text className="text-xs text-gray-400 mb-1">Report ID:</Text>
               <Text className="text-sm font-medium text-white">{report.id}</Text>
             </View>
             <View className="flex-1">
               <Text className="text-xs text-gray-400 mb-1">Date:</Text>
-              <Text className="text-sm font-medium text-white">
-                {report.date}
-              </Text>
+              <Text className="text-sm font-medium text-white">{formatDate(report.date)}</Text>
             </View>
           </View>
           <View className="flex-row justify-between mt-3">
             <View className="flex-1">
               <Text className="text-xs text-gray-400 mb-1">Specimen:</Text>
+              <Text className="text-sm font-medium text-white">{report.specimenType}</Text>
+            </View>
+            <View className="flex-1">
+              <Text className="text-xs text-gray-400 mb-1">Sex:</Text>
+              <Text className="text-sm font-medium text-white">{report.patientSex === "M" ? "Male" : "Female"}</Text>
+            </View>
+          </View>
+          <View className="flex-row justify-between mt-3">
+            <View className="flex-1">
+              <Text className="text-xs text-gray-400 mb-1">Age Group:</Text>
               <Text className="text-sm font-medium text-white">
-                {report.specimenType}
+                {report.patientDemographics.split(" ")[0]}
               </Text>
             </View>
             <View className="flex-1">
-              <Text className="text-xs text-gray-400 mb-1">Patient:</Text>
-              <Text className="text-sm font-medium text-white">
-                {report.patientDemographics}
-              </Text>
+              {report.growthTimeHours && (
+                <>
+                  <Text className="text-xs text-gray-400 mb-1">Growth Time:</Text>
+                  <Text className="text-sm font-medium text-white">{report.growthTimeHours} hours</Text>
+                </>
+              )}
             </View>
           </View>
         </View>
@@ -203,11 +246,6 @@ export default function ClinicianReportView() {
               </View>
             );
           })}
-
-          <Text className="text-xs text-gray-400 italic mt-2 text-center">
-            + {Math.max(0, report.astResults.length - 6)} more antibiotics
-            tested (scroll full report to view)
-          </Text>
         </View>
 
         <View className="bg-gray-100 rounded-xl p-4 mb-4">
@@ -215,16 +253,22 @@ export default function ClinicianReportView() {
             LOCAL {report.organism.toUpperCase()} RESISTANCE CONTEXT
           </Text>
           <Text className="text-sm text-gray-700 leading-5">
-            {report.localContext}
+            {report.isMRSA
+              ? "MRSA detected. Avoid beta-lactams. Consider Vancomycin or Linezolid based on susceptibility."
+              : "MSSA detected. Beta-lactams such as Oxacillin remain effective. Confirm full susceptibility panel before prescribing."}
           </Text>
         </View>
 
-        <View className="mt-2 mb-4">
-          <View className="h-px bg-gray-200 mb-3" />
-          <Text className="text-xs text-gray-400 text-center">
-            Authorized by: {report.authorisedBy} | {report.date}
-          </Text>
-        </View>
+        {report.remarks && (
+          <View className="bg-amber-50 rounded-xl p-4 mb-4 border border-amber-200">
+            <Text className="text-xs font-semibold text-amber-700 uppercase tracking-wider mb-2">
+              TECHNICIAN REMARKS
+            </Text>
+            <Text className="text-sm text-gray-800 leading-5">
+              {report.remarks}
+            </Text>
+          </View>
+        )}
       </ScrollView>
     </View>
   );

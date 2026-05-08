@@ -9,7 +9,7 @@ import {
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { ChevronLeft, Bug, Send } from "lucide-react-native";
-import { getFullSampleReport } from "../../services/api";
+import { getFullSampleReport, publishReport } from "../../services/api";
 import { Sample } from "../../types";
 
 export default function LabReportView() {
@@ -17,11 +17,14 @@ export default function LabReportView() {
   const router = useRouter();
   const [sample, setSample] = useState<Sample | null>(null);
   const [isMRSA, setIsMRSA] = useState(false);
+  const [growthTimeHours, setGrowthTimeHours] = useState<number | undefined>(undefined);
+  const [remarks, setRemarks] = useState<string | null>(null);
   const [astResults, setAstResults] = useState<
     { antibiotic: string; abbreviation: string; result: string }[]
   >([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isPublishing, setIsPublishing] = useState(false);
+  const [hasPublished, setHasPublished] = useState(false);
 
   useEffect(() => {
     const fetchReport = async () => {
@@ -31,6 +34,9 @@ export default function LabReportView() {
         if (report) {
           setSample(report.sample);
           setIsMRSA(report.isolate?.is_mrsa ?? false);
+          setGrowthTimeHours(report.isolate?.growth_time_hours);
+          setRemarks(report.remarks);
+          setHasPublished(report.reportPublished);
           setAstResults(
             report.astResults
               .filter((r) => r.result !== null)
@@ -47,9 +53,11 @@ export default function LabReportView() {
   }, [sampleId]);
 
   const handlePublish = async () => {
-    if (!sample) return;
+    if (!sample || hasPublished) return;
     setIsPublishing(true);
     try {
+      await publishReport(sample.id);
+      setHasPublished(true);
       Alert.alert("Success", "Report published successfully.", [
         { text: "OK", onPress: () => router.back() },
       ]);
@@ -104,7 +112,8 @@ export default function LabReportView() {
     );
   }
 
-  const patientDemographics = `${sample.age_group} ${sample.sex === "M" ? "Male" : "Female"}`;
+  const patientSexLabel = sample.sex === "M" ? "Male" : "Female";
+  const patientLabel = sample.age_group;
   const organism = "Staphylococcus aureus";
 
   return (
@@ -139,12 +148,12 @@ export default function LabReportView() {
           <Text className="text-xl font-bold text-white mb-3">
             {organism} Susceptibility Report
           </Text>
-          <View className="absolute top-5 right-5 bg-amber-600 px-3 py-1 rounded-full">
-            <Text className="text-xs font-semibold text-white">DRAFT</Text>
+          <View className={`absolute top-5 right-5 px-3 py-1 rounded-full ${hasPublished ? "bg-emerald-600" : "bg-amber-600"}`}>
+            <Text className="text-xs font-semibold text-white">{hasPublished ? "PUBLISHED" : "DRAFT"}</Text>
           </View>
           <View className="flex-row justify-between mt-3">
             <View className="flex-1">
-              <Text className="text-xs text-gray-400 mb-1">Sample #:</Text>
+              <Text className="text-xs text-gray-400 mb-1">Sample ID:</Text>
               <Text className="text-sm font-medium text-white">
                 {sample.sample_code}
               </Text>
@@ -158,19 +167,40 @@ export default function LabReportView() {
           </View>
           <View className="flex-row justify-between mt-3">
             <View className="flex-1">
-              <Text className="text-xs text-gray-400 mb-1">Specimen:</Text>
-              <Text className="text-sm font-medium text-white">
-                {sample.specimen_type}
-              </Text>
+              <Text className="text-xs text-gray-400 mb-1">Sample ID:</Text>
+              <Text className="text-sm font-medium text-white">{sample.sample_code}</Text>
             </View>
             <View className="flex-1">
+              <Text className="text-xs text-gray-400 mb-1">Date:</Text>
+              <Text className="text-sm font-medium text-white">{sample.received_date?.split("T")[0]}</Text>
+            </View>
+          </View>
+          <View className="flex-row justify-between mt-3">
+            <View className="flex-1">
+              <Text className="text-xs text-gray-400 mb-1">Specimen:</Text>
+              <Text className="text-sm font-medium text-white">{sample.specimen_type}</Text>
+            </View>
+            <View className="flex-1">
+              <Text className="text-xs text-gray-400 mb-1">Sex:</Text>
+              <Text className="text-sm font-medium text-white">{patientSexLabel}</Text>
+            </View>
+          </View>
+          <View className="flex-row justify-between mt-3">
+            <View className="flex-1">
               <Text className="text-xs text-gray-400 mb-1">Patient:</Text>
-              <Text className="text-sm font-medium text-white">
-                {patientDemographics}
-              </Text>
+              <Text className="text-sm font-medium text-white">{patientLabel}</Text>
+            </View>
+            <View className="flex-1">
+              {growthTimeHours && (
+                <>
+                  <Text className="text-xs text-gray-400 mb-1">Sample Maturity(Hrs):</Text>
+                  <Text className="text-sm font-medium text-white">{growthTimeHours}</Text>
+                </>
+              )}
             </View>
           </View>
         </View>
+        
 
         <View className="bg-white rounded-xl p-4 mb-4 shadow-sm">
           <Text className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
@@ -241,11 +271,6 @@ export default function LabReportView() {
               </View>
             );
           })}
-
-          <Text className="text-xs text-gray-400 italic mt-2 text-center">
-            + {Math.max(0, astResults.length - 6)} more antibiotics tested
-            (scroll full report to view)
-          </Text>
         </View>
 
         <View className="bg-gray-100 rounded-xl p-4 mb-4">
@@ -259,6 +284,17 @@ export default function LabReportView() {
           </Text>
         </View>
 
+        {remarks && (
+          <View className="bg-amber-50 rounded-xl p-4 mb-4 border border-amber-200">
+            <Text className="text-xs font-semibold text-amber-700 uppercase tracking-wider mb-2">
+              TECHNICIAN REMARKS
+            </Text>
+            <Text className="text-sm text-gray-800 leading-5">
+              {remarks}
+            </Text>
+          </View>
+        )}
+
         <View className="mt-2 mb-4">
           <View className="h-px bg-gray-200 mb-3" />
           <Text className="text-xs text-gray-400 text-center">
@@ -269,11 +305,11 @@ export default function LabReportView() {
 
         <TouchableOpacity
           onPress={handlePublish}
-          disabled={isPublishing}
-          className={`w-full py-4 rounded-xl flex-row justify-center items-center mt-4 mb-4 ${isPublishing ? "bg-gray-400" : "bg-emerald-700"}`}
+          disabled={isPublishing || hasPublished}
+          className={`w-full py-4 rounded-xl flex-row justify-center items-center mt-4 mb-4 ${isPublishing || hasPublished ? "bg-gray-400" : "bg-emerald-700"}`}
         >
           <Send size={20} color="#fff" className="mr-2" />
-          <Text className="text-white font-bold text-lg">Publish Report</Text>
+          <Text className="text-white font-bold text-lg">{hasPublished ? "Already Published" : "Publish Report"}</Text>
         </TouchableOpacity>
       </ScrollView>
     </View>

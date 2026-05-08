@@ -1,6 +1,6 @@
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useRouter } from "expo-router";
-import { Calendar } from "lucide-react-native";
+import { Calendar, Trash2 } from "lucide-react-native";
 import React, { useEffect, useState } from "react";
 import {
   Alert,
@@ -8,13 +8,12 @@ import {
   Platform,
   ScrollView,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
 
 import ScreenHeader from "../../components/layout/ScreenHeader";
-import { createSample } from "../../services/api";
+import { createSample, deleteSample } from "../../services/api";
 import useAMRStore from "../../store/amr";
 import {
   AgeGroup,
@@ -26,7 +25,7 @@ import {
 
 export default function NewSample() {
   const router = useRouter();
-  const { addSample } = useAMRStore();
+  const { addSample, removeSample } = useAMRStore();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [sampleId, setSampleId] = useState("");
@@ -75,15 +74,38 @@ export default function NewSample() {
       const sampleToAdd = (newSample || payload) as Sample;
 
       addSample(sampleToAdd);
-      router.replace(`/(lab)/isolate?sampleId=${sampleToAdd.id}`);
+      router.replace(`/(lab)/isolate?sampleId=${sampleToAdd.id}&sampleCode=${sampleToAdd.sample_code ?? sampleId}`);
     } catch (err) {
       console.log("Fallback to local save due to API error", err);
       // Force local save and proceed even if the network strictly fails
       addSample(payload as Sample);
-      router.replace(`/(lab)/isolate?sampleId=${payload.id}`);
+      router.replace(`/(lab)/isolate?sampleId=${payload.id}&sampleCode=${payload.sample_code ?? payload.id}`);
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleDelete = () => {
+    Alert.alert(
+      "Delete Sample",
+      "Are you sure you want to delete this sample? This action cannot be undone.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await deleteSample(sampleId);
+              removeSample(sampleId);
+              router.replace("/(lab)/home");
+            } catch (error) {
+              Alert.alert("Error", "Failed to delete sample.");
+            }
+          },
+        },
+      ]
+    );
   };
 
   const handleDateChange = (event: any, selectedDate?: Date) => {
@@ -173,8 +195,12 @@ export default function NewSample() {
       <View className="flex-1 bg-gray-50">
         <ScreenHeader
           title="Register New Sample"
-          showBack
           onBack={() => router.back()}
+          rightAction={
+            <TouchableOpacity onPress={handleDelete} className="p-2">
+              <Trash2 size={20} color="#dc2626" />
+            </TouchableOpacity>
+          }
         />
 
         <ScrollView
@@ -184,13 +210,11 @@ export default function NewSample() {
           {/* Sample ID Card */}
           <View className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 mb-4">
             <Text className="text-gray-800 font-bold mb-3">Sample ID</Text>
-            <TextInput
-              value={sampleId}
-              onChangeText={setSampleId}
-              className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-3.5 text-gray-900 font-medium"
-            />
+            <Text className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-3.5 text-gray-900 font-medium">
+              {sampleId}
+            </Text>
             <Text className="text-xs text-gray-400 mt-2">
-              Auto-generated for this session. You can modify it.
+              Auto-generated ID for this session
             </Text>
           </View>
 

@@ -76,6 +76,7 @@ export default function LabLayout() {
         name="report-view"
         options={{
           title: "Report",
+          href: null,
           tabBarIcon: ({ color }) => <FileText size={20} color={color} />,
         }}
       />
