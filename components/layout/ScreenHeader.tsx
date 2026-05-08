@@ -6,6 +6,7 @@ export interface ScreenHeaderProps {
   subtitle?: string;
   showBack?: boolean;
   onBack?: () => void;
+  rightAction?: React.ReactNode;
 }
 
 const ScreenHeader: React.FC<ScreenHeaderProps> = ({
@@ -13,6 +14,7 @@ const ScreenHeader: React.FC<ScreenHeaderProps> = ({
   subtitle,
   showBack,
   onBack,
+  rightAction,
 }) => {
   return (
     <View style={styles.header}>
@@ -29,6 +31,7 @@ const ScreenHeader: React.FC<ScreenHeaderProps> = ({
         <Text style={styles.title}>{title}</Text>
         {subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
       </View>
+      {rightAction && <View style={styles.rightAction}>{rightAction}</View>}
     </View>
   );
 };
@@ -67,6 +70,9 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: "#6b7280",
     marginTop: 2,
+  },
+  rightAction: {
+    marginLeft: 8,
   },
 });
 

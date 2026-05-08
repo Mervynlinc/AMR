@@ -17,7 +17,10 @@ export default function Sparkline({
   color = '#047857',
   strokeWidth = 2,
 }: SparklineProps) {
+  console.log("Sparkline data:", data);
+  
   if (!data || data.length < 2) {
+    console.log("Sparkline: Not enough data points");
     return <View style={{ width, height }} />;
   }
 
@@ -25,11 +28,15 @@ export default function Sparkline({
   const min = Math.min(...data);
   const range = max - min || 1;
 
+  console.log("Sparkline: max=", max, "min=", min, "range=", range);
+
   const points = data.map((value, index) => {
     const x = (index / (data.length - 1)) * width;
     const y = height - ((value - min) / range) * height;
     return `${x},${y}`;
   }).join(' ');
+
+  console.log("Sparkline points:", points);
 
   return (
     <View style={{ width, height }}>

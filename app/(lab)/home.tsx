@@ -1,16 +1,19 @@
 import { useRouter } from "expo-router";
 import { ArrowLeft, ListTodo, LogOut, Plus } from "lucide-react-native";
 import React from "react";
-import { ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { ScrollView, Text, TouchableOpacity, View, Alert } from "react-native";
 
 import SampleCard from "../../components/ui/SampleCard";
 import { useAuthContext } from "../../context/AuthContext";
 import { useSamples } from "../../hooks/useSamples";
+import { deleteSample } from "../../services/api";
+import useAMRStore from "../../store/amr";
 
 export default function LabHome() {
   const router = useRouter();
   const { user, logout } = useAuthContext();
   const { samples, isLoading } = useSamples();
+  const { removeSample } = useAMRStore();
 
   const handleBackToLanding = async () => {
     await logout();
@@ -22,8 +25,46 @@ export default function LabHome() {
     router.replace("/(auth)/login");
   };
 
+  const handleDeleteSample = async (sampleId: string) => {
+    Alert.alert(
+      "Delete Sample",
+      "Are you sure you want to delete this sample? This action cannot be undone.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await deleteSample(sampleId);
+              removeSample(sampleId);
+              Alert.alert("Success", "Sample deleted successfully.");
+            } catch (error) {
+              Alert.alert("Error", "Failed to delete sample.");
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const pendingSamples = samples.filter((s) => s.status.includes("pending"));
-  const completedSamples = samples.filter((s) => s.status === "complete");
+  
+  // Get samples completed today
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const completedToday = samples.filter((s) => {
+    if (s.status !== "complete") return false;
+    const completedDate = new Date(s.created_at);
+    completedDate.setHours(0, 0, 0, 0);
+    return completedDate.getTime() === today.getTime();
+  });
+
+  // Get 7 most recent completed samples
+  const recentSamples = [...samples]
+    .filter((s) => s.status === "complete")
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+    .slice(0, 7);
 
   return (
     <View className="flex-1">
@@ -63,7 +104,7 @@ export default function LabHome() {
         </View>
 
         <Text className="text-lg font-bold text-gray-800 mb-4">
-          Pending Work
+          Pending Report Samples
         </Text>
         {isLoading ? (
           <Text className="text-gray-500 text-center py-4">
@@ -76,11 +117,12 @@ export default function LabHome() {
               sample={sample}
               onPress={() => {
                 if (sample.status === "pending_isolate") {
-                  router.push(`/(lab)/isolate?sampleId=${sample.id}`);
+                  router.push(`/(lab)/isolate?sampleId=${sample.id}&sampleCode=${sample.sample_code}`);
                 } else if (sample.status === "pending_ast") {
-                  router.push(`/(lab)/ast?sampleId=${sample.id}`);
+                  router.push(`/(lab)/ast?sampleId=${sample.id}&sampleCode=${sample.sample_code}`);
                 }
               }}
+              onDelete={() => handleDeleteSample(sample.id)}
             />
           ))
         ) : (
@@ -92,13 +134,33 @@ export default function LabHome() {
         <Text className="text-lg font-bold text-gray-800 mb-4 mt-6">
           Completed Today
         </Text>
-        {!isLoading && completedSamples.length === 0 && (
+        {!isLoading && completedToday.length === 0 && (
           <Text className="text-gray-500 text-center py-4">
-            No completed samples today.
+            No samples completed today.
           </Text>
         )}
-        {!isLoading && completedSamples.length > 0 && (
-          completedSamples.map((sample) => (
+        {!isLoading && completedToday.length > 0 && (
+          completedToday.map((sample) => (
+            <SampleCard
+              key={sample.id}
+              sample={sample}
+              onPress={() => {
+                router.push(`/(lab)/report-view?sampleId=${sample.id}`);
+              }}
+            />
+          ))
+        )}
+
+        <Text className="text-lg font-bold text-gray-800 mb-4 mt-6">
+          Most Recent Samples
+        </Text>
+        {!isLoading && recentSamples.length === 0 && (
+          <Text className="text-gray-500 text-center py-4">
+            No samples yet.
+          </Text>
+        )}
+        {!isLoading && recentSamples.length > 0 && (
+          recentSamples.map((sample) => (
             <SampleCard
               key={sample.id}
               sample={sample}
